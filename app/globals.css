@@ -1,26 +1,377 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: #f4f8f3;
+  color: #1f2a24;
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+/* =========================
+   Header
+========================= */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #dce8da;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: #163d22;
+  text-decoration: none;
+}
+
+.brand-en {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.brand-cn {
+  font-size: 13px;
+  color: #5f7a62;
+}
+
+.domain {
+  font-size: 12px;
+  color: #718072;
+}
+
+/* =========================
+   Layout
+========================= */
+
+.page {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+.atlas-layout {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+.sidebar-shell {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 108px);
+}
+
+/* =========================
+   Sidebar
+========================= */
+
+.sidebar-toggle {
+  position: absolute;
+  top: 8px;
+  right: -12px;
+  z-index: 40;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #cfe0cf;
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* 拖拽 */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: -18px;
+  width: 14px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 30;
+}
+
+.resize-handle::after {
+  content: "";
+  display: block;
+  width: 2px;
+  height: 100%;
+  margin: 0 auto;
+}
+
+.resize-handle:hover::after {
+  background: #9bc79b;
+}
+
+/* 主导航容器 */
+.lineage-sidebar {
+  max-height: calc(100vh - 108px);
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid #dce8da;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 12.5px;
+}
+
+/* 分区 */
+.sidebar-section {
+  border-top: 1px solid #edf2ed;
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.sidebar-section.first {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* 标题 */
+.sidebar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-head h3,
+.sidebar-section h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.sidebar-head button {
+  font-size: 11px;
+  padding: 3px 6px;
+}
+
+/* 树结构 */
+.lineage-sidebar summary {
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 2px 0;
+}
+
+/* 层级缩进 */
+.level-2 { margin-left: 10px; }
+.level-3 { margin-left: 14px; }
+.level-4 { margin-left: 18px; }
+.level-5 { margin-left: 22px; }
+
+/* 列表 */
+.lineage-sidebar ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 4px 0;
+}
+
+.lineage-sidebar li {
+  margin: 5px 0;
+}
+
+/* 链接（重点优化🔥） */
+.lineage-sidebar a {
+  display: block;
+  text-decoration: none;
+  line-height: 1.5;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* hover 提升可读性 */
+.lineage-sidebar a:hover {
+  background: #f3f8f3;
+}
+
+/* 拉丁名 */
+.lineage-sidebar span {
+  display: block;
+  font-size: 11px;
+  color: #8a998d;
+  margin-top: 2px;
+}
+
+/* =========================
+   Content（核心🔥）
+========================= */
+
+.document-panel {
+  background: #ffffff;
+  border: 1px solid #dce8da;
+  border-radius: 14px;
+  padding: 28px 32px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* 标题 */
+.document-panel h1 {
+  font-size: 24px;
+  margin: 0 0 6px;
+}
+
+.document-panel h2 {
+  font-size: 17px;
+  margin-top: 22px;
+  padding-top: 10px;
+  border-top: 1px solid #edf2ed;
+}
+
+.document-panel h3 {
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+/* 段落 */
+.document-panel p {
+  margin: 6px 0;
+}
+
+/* 列表 */
+.document-panel ul {
+  margin: 6px 0;
+  padding-left: 16px;
+}
+
+.document-panel li {
+  margin: 3px 0;
+}
+
+/* 表格 */
+.document-panel table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.document-panel td {
+  padding: 6px 10px;
+}
+
+/* 文本细节 */
+.latin {
+  font-size: 12.5px;
+  color: #68786c;
+}
+
+.meta {
+  font-size: 12.5px;
+  color: #6f7d71;
+}
+
+.link {
+  color: #167a2d;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: #607464;
+}
+
+.breadcrumb span {
+  margin: 0 4px;
+  color: #9aaa9d;
+}
+
+/* =========================
+   基础信息（并排🔥）
+========================= */
+
+.info-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.info-item {
+  white-space: nowrap;
+}
+
+.info-label {
+  color: #6f7d71;
+  margin-right: 4px;
+}
+
+/* =========================
+   横向谱系（核心🔥）
+========================= */
+
+.lineage-horizontal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.lineage-node {
+  background: #f1f6f1;
+  border: 1px solid #dce8da;
+  border-radius: 6px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.lineage-arrow {
+  color: #9aaa9d;
+  margin: 0 2px;
+}
+
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width: 980px) {
+  .page {
+    padding: 14px 10px;
+  }
+
+  .site-header {
+    padding: 0 12px;
+  }
+
+  .atlas-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sidebar-shell {
+    position: static;
+    max-height: none;
+  }
+
+  .lineage-sidebar {
+    max-height: 260px;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+
+  .document-panel {
+    padding: 20px;
+  }
 }
