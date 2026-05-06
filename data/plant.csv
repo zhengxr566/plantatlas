@@ -1,0 +1,12 @@
+﻿slug,nameCn,nameLatin,kingdom,division,className,order,family,familySlug,genus,genusSlug,habit,leaf,flower,fruit,bark,environment,usage,tags,similar
+ginkgo-biloba,银杏,Ginkgo biloba,植物界,裸子植物,银杏纲,银杏目,银杏科,ginkgoaceae,银杏属,ginkgo,落叶乔木,扇形叶，叶脉呈放射状，秋季变黄,无明显花瓣，属于裸子植物,白果,灰褐色树皮，老树纵裂,耐寒耐污染，适应城市环境,行道树|观叶植物|秋色叶树种,裸子植物|银杏科|银杏属|落叶乔木|行道树|扇形叶|秋色叶|秋天变黄|耐寒|观叶植物|城市绿化|古老植物,水杉|鹅掌楸
+metasequoia-glyptostroboides,水杉,Metasequoia glyptostroboides,植物界,裸子植物,松柏纲,柏目,柏科,cupressaceae,水杉属,metasequoia,落叶乔木,羽状针叶，秋季变黄,球果,球形球果,红褐色树皮,喜湿环境，适合湿地,园林绿化|湿地植物,裸子植物|柏科|水杉属|落叶乔木|针叶树|湿地植物|古老植物|秋色叶|喜湿,银杏|池杉
+pinus-tabuliformis,油松,Pinus tabuliformis,植物界,裸子植物,松柏纲,松目,松科,pinaceae,松属,pinus,常绿乔木,针形叶，成束生长,球花,松果,灰褐色树皮,耐寒耐旱,造林树种|园林绿化,裸子植物|松科|松属|常绿乔木|针形叶|针叶树|耐寒|耐旱|北方常见,白皮松|黑松
+pinus-bungeana,白皮松,Pinus bungeana,植物界,裸子植物,松柏纲,松目,松科,pinaceae,松属,pinus,常绿乔木,三针一束，针形叶,球花,松果,树皮斑驳呈白绿色,耐寒耐旱,观赏树|庭院树,裸子植物|松科|松属|常绿乔木|针形叶|树皮斑驳|庭院树|观赏树,油松|华山松
+platycladus-orientalis,侧柏,Platycladus orientalis,植物界,裸子植物,松柏纲,柏目,柏科,cupressaceae,侧柏属,platycladus,常绿乔木,鳞片状叶,球花,小球果,灰褐色树皮,耐旱耐寒,陵园树|绿篱,裸子植物|柏科|侧柏属|常绿乔木|鳞形叶|针叶树|耐寒|耐旱|绿篱,圆柏|龙柏
+juniperus-chinensis,圆柏,Juniperus chinensis,植物界,裸子植物,松柏纲,柏目,柏科,cupressaceae,刺柏属,juniperus,常绿乔木,针叶与鳞叶并存,球花,浆果状球果,灰褐色树皮,耐修剪,观赏树|庭院树,裸子植物|柏科|刺柏属|常绿乔木|针叶树|鳞形叶|观赏树|耐修剪,侧柏|龙柏
+cinnamomum-camphora,香樟,Cinnamomum camphora,植物界,被子植物,木兰纲,樟目,樟科,lauraceae,樟属,cinnamomum,常绿乔木,革质叶，有香味,黄绿色小花,浆果,灰褐色树皮,南方常见，耐修剪,行道树|庭荫树,被子植物|樟科|樟属|常绿乔木|行道树|芳香植物|革质叶|南方常见|城市绿化,桂花|女贞
+osmanthus-fragrans,桂花,Osmanthus fragrans,植物界,被子植物,木兰纲,木犀目,木犀科,oleaceae,木犀属,osmanthus,常绿灌木,革质叶,芳香小花,核果,灰色树皮,喜温暖湿润,观花植物|庭院树,被子植物|木犀科|木犀属|常绿灌木|芳香花|秋季开花|观花植物|庭院树,女贞|香樟
+ligustrum-lucidum,女贞,Ligustrum lucidum,植物界,被子植物,木兰纲,木犀目,木犀科,oleaceae,女贞属,ligustrum,常绿乔木,革质叶,白色圆锥花序,黑色浆果,灰色树皮,耐修剪耐污染,行道树|绿篱,被子植物|木犀科|女贞属|常绿乔木|绿篱|行道树|耐修剪|城市绿化,桂花|香樟
+camellia-japonica,山茶,Camellia japonica,植物界,被子植物,木兰纲,杜鹃花目,山茶科,theaceae,山茶属,camellia,常绿灌木,深绿色革质叶,红色大型花,蒴果,灰色树皮,喜酸性土壤,观花植物|庭院植物,被子植物|山茶科|山茶属|常绿灌木|红花|观花植物|冬春开花|酸性土植物,茶树|杜鹃
+camellia-sinensis,茶树,Camellia sinensis,植物界,被子植物,木兰纲,杜鹃花目,山茶科,theaceae,山茶属,camellia,常绿灌木,小型革质叶,白花,蒴果,灰色树皮,喜温暖湿润,经济植物|茶叶植物,被子植物|山茶科|山茶属|常绿灌木|经济植物|茶叶植物|白花,山茶|油茶
