@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { parse } from "csv-parse/sync";
 
 export type Plant = {
   slug: string;
@@ -20,25 +19,58 @@ export type Plant = {
   fruit?: string;
   bark?: string;
   environment?: string;
-  usage: string[];
-  tags: string[];
-  similar: string[];
+  usage?: string[];
+  tags?: string[];
+  similar?: string[];
 };
+
+function splitList(value?: string): string[] {
+  return (value || "")
+    .split(/[|、,，]/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function parseCsvLine(line: string): string[] {
+  return line.split(",").map((v) => v.trim());
+}
 
 export function loadPlants(): Plant[] {
   const filePath = path.join(process.cwd(), "data", "plants.csv");
-  const csvContent = fs.readFileSync(filePath, "utf-8");
+  const csv = fs.readFileSync(filePath, "utf8");
 
-  const records = parse(csvContent, {
-    columns: true,
-    skip_empty_lines: true,
-    trim: true,
+  const lines = csv.trim().split(/\r?\n/);
+  const headers = lines[0].split(",").map((h) => h.trim());
+
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    const row: Record<string, string> = {};
+
+    headers.forEach((header, index) => {
+      row[header] = values[index] || "";
+    });
+
+    return {
+      slug: row.slug,
+      nameCn: row.nameCn,
+      nameLatin: row.nameLatin,
+      kingdom: row.kingdom,
+      division: row.division,
+      className: row.className,
+      order: row.order,
+      family: row.family,
+      familySlug: row.familySlug,
+      genus: row.genus,
+      genusSlug: row.genusSlug,
+      habit: row.habit,
+      leaf: row.leaf,
+      flower: row.flower,
+      fruit: row.fruit,
+      bark: row.bark,
+      environment: row.environment,
+      usage: splitList(row.usage),
+      tags: splitList(row.tags),
+      similar: splitList(row.similar),
+    };
   });
-
-  return records.map((r: any) => ({
-    ...r,
-    usage: r.usage ? r.usage.split("|") : [],
-    tags: r.tags ? r.tags.split("|") : [],
-    similar: r.similar ? r.similar.split("|") : [],
-  }));
 }
