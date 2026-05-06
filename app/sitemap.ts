@@ -1,31 +1,45 @@
-import { plants } from "@/data/plants";
-import { comparePairs } from "@/data/comparePairs";
 import { identifyPages } from "@/data/identify";
+import { loadPlants } from "@/lib/loadPlants";
+import { generateComparePairs } from "@/lib/generateComparePairs";
 
 export default function sitemap() {
   const baseUrl = "https://plantatlasworld.com";
+  const plants = loadPlants();
+  const comparePairs = generateComparePairs();
 
-  // 植物页
-  const plantUrls = plants.map((p) => ({
-    url: `${baseUrl}/plant/${p.slug}`,
-  }));
-
-  // 对比页
-  const compareUrls = comparePairs.map((c) => ({
-    url: `${baseUrl}/compare/${c.slug}`,
-  }));
-
-  // 识别页（🔥 新增重点）
-  const identifyUrls = identifyPages.map((i) => ({
-    url: `${baseUrl}/identify/${i.slug}`,
-  }));
+  const familySlugs = Array.from(new Set(plants.map((p) => p.familySlug)));
+  const genusSlugs = Array.from(new Set(plants.map((p) => p.genusSlug)));
 
   return [
     {
       url: baseUrl,
+      lastModified: new Date(),
+      priority: 1,
     },
-    ...plantUrls,
-    ...compareUrls,
-    ...identifyUrls,
+    ...plants.map((p) => ({
+      url: `${baseUrl}/plant/${p.slug}`,
+      lastModified: new Date(),
+      priority: 0.8,
+    })),
+    ...familySlugs.map((slug) => ({
+      url: `${baseUrl}/family/${slug}`,
+      lastModified: new Date(),
+      priority: 0.75,
+    })),
+    ...genusSlugs.map((slug) => ({
+      url: `${baseUrl}/genus/${slug}`,
+      lastModified: new Date(),
+      priority: 0.7,
+    })),
+    ...identifyPages.map((p) => ({
+      url: `${baseUrl}/identify/${p.slug}`,
+      lastModified: new Date(),
+      priority: 0.9,
+    })),
+    ...comparePairs.map((p) => ({
+      url: `${baseUrl}/compare/${p.slug}`,
+      lastModified: new Date(),
+      priority: 0.85,
+    })),
   ];
 }
