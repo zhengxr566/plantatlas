@@ -64,8 +64,59 @@ function getOnlyTags(a: PlantLike, b: PlantLike) {
   return tagsA.filter((tag) => !tagsB.includes(tag));
 }
 
-function buildCompareTitle(plant1: PlantLike, plant2: PlantLike) {
-  return `${plant1.nameCn}和${plant2.nameCn}的区别`;
+function getCompareTopic(plant1: PlantLike, plant2: PlantLike) {
+  const tags = [...toList(plant1.tags), ...toList(plant2.tags)];
+
+  if (tags.some((tag) => tag.includes("针叶") || tag.includes("松果"))) {
+    return "两种常见针叶树";
+  }
+
+  if (
+    tags.some(
+      (tag) =>
+        tag.includes("秋") ||
+        tag.includes("黄叶") ||
+        tag.includes("红叶")
+    )
+  ) {
+    return "两种常见秋色树";
+  }
+
+  if (
+    tags.some(
+      (tag) =>
+        tag.includes("行道树") ||
+        tag.includes("城市绿化")
+    )
+  ) {
+    return "两种常见行道树";
+  }
+
+  if (
+    tags.some(
+      (tag) =>
+        tag.includes("庭院") ||
+        tag.includes("观赏")
+    )
+  ) {
+    return "两种常见园林植物";
+  }
+
+  if (plant1.family && plant1.family === plant2.family) {
+    return `两种常见${plant1.family}植物`;
+  }
+
+  return "两种常见植物";
+}
+
+function buildCompareTitle(
+  plant1: PlantLike,
+  plant2: PlantLike
+) {
+  return `${plant1.nameCn} vs ${plant2.nameCn}｜如何快速区分${getCompareTopic(
+    plant1,
+    plant2
+  )}`;
 }
 
 function buildMetaDescription(plant1: PlantLike, plant2: PlantLike) {
@@ -199,13 +250,13 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${buildCompareTitle(plant1, plant2)}｜识别方法、叶片花果与分类对比`,
+    title: buildCompareTitle(plant1, plant2),
     description: buildMetaDescription(plant1, plant2),
     alternates: {
       canonical: `https://plantatlasworld.com/compare/${slug}`,
     },
     openGraph: {
-      title: `${buildCompareTitle(plant1, plant2)}｜Plant Atlas World`,
+      title: buildCompareTitle(plant1, plant2),
       description: buildMetaDescription(plant1, plant2),
       type: "article",
       url: `https://plantatlasworld.com/compare/${slug}`,
@@ -278,7 +329,9 @@ export default async function ComparePage({
         </span>
       </nav>
 
-      <h1>{plant1.nameCn}和{plant2.nameCn}的区别</h1>
+      <h1>
+        {plant1.nameCn} vs {plant2.nameCn}：怎么快速区分
+      </h1>
 
       <p className="compare-intro">{buildIntro(plant1, plant2)}</p>
 

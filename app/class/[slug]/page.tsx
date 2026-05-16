@@ -89,7 +89,7 @@ export default async function ClassPage({
 
       <h2>包含哪些目</h2>
 
-      <ul>
+      <ul className="card-grid compact scroll-box">
         {orders.map((order) => (
           <li key={order.slug}>
             <Link href={`/order/${order.slug}`} className="link">
@@ -101,7 +101,7 @@ export default async function ClassPage({
 
       <h2>包含哪些科</h2>
 
-      <ul>
+      <ul className="card-grid compact scroll-box">
         {families.map((family) => (
           <li key={family.slug}>
             <Link href={`/family/${family.slug}`} className="link">
@@ -113,16 +113,14 @@ export default async function ClassPage({
 
       <h2>常见植物</h2>
 
-      <ul>
+      <ul className="card-grid scroll-box">
         {list.map((plant) => (
           <li key={plant.slug}>
             <Link href={`/plant/${plant.slug}`} className="link">
               {plant.nameCn}
             </Link>
-
             <span className="meta">
-              {" "}
-              · {plant.family} · {plant.genus}
+              {" "}· {plant.family} · {plant.genus}
             </span>
           </li>
         ))}

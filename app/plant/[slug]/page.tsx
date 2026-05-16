@@ -137,6 +137,94 @@ function buildUsageText(plant: any) {
   return parts;
 }
 
+function getPlantSeoTopic(plant: any) {
+  const tags = toList(plant.tags);
+
+  if (tags.some((tag) => tag.includes("针叶") || tag.includes("松果"))) {
+    return "针叶树识别";
+  }
+
+  if (
+    tags.some(
+      (tag) =>
+        tag.includes("秋") ||
+        tag.includes("黄叶") ||
+        tag.includes("红叶")
+    )
+  ) {
+    return "秋色树识别";
+  }
+
+  if (tags.some((tag) => tag.includes("行道树") || tag.includes("城市绿化"))) {
+    return "常见行道树";
+  }
+
+  if (tags.some((tag) => tag.includes("庭院") || tag.includes("观赏"))) {
+    return "园林植物识别";
+  }
+
+  if (tags.some((tag) => tag.includes("湿地") || tag.includes("水边"))) {
+    return "湿地植物识别";
+  }
+
+  return "植物识别";
+}
+
+function buildPlantTitle(plant: any) {
+  const tags = toList(plant.tags);
+  const highlights: string[] = [];
+
+  if (tags.includes("扇形叶")) highlights.push("扇形叶");
+  if (tags.includes("秋天变黄") || tags.includes("秋色叶")) {
+    highlights.push("秋叶");
+  }
+  if (tags.includes("针叶树")) highlights.push("针叶树");
+  if (tags.includes("行道树")) highlights.push("行道树");
+  if (tags.includes("湿地植物") || tags.includes("水边植物")) {
+    highlights.push("水边植物");
+  }
+
+  if (highlights.length > 0) {
+    return `${plant.nameCn}｜${highlights
+      .slice(0, 2)
+      .join("、")}与${getPlantSeoTopic(plant)}`;
+  }
+
+  return `${plant.nameCn}（${plant.nameLatin}）｜特征、分类与识别方法`;
+}
+
+function buildPlantDescription(plant: any) {
+  const parts: string[] = [];
+  const tags = toList(plant.tags);
+
+  if (plant.leaf) {
+    parts.push(`叶片特征：${plant.leaf}`);
+  }
+
+  if (plant.flower && !plant.flower.includes("无明显")) {
+    parts.push(`花：${plant.flower}`);
+  }
+
+  if (plant.fruit) {
+    parts.push(`果实或种子：${plant.fruit}`);
+  }
+
+  if (plant.environment) {
+    parts.push(`常见环境：${plant.environment}`);
+  }
+
+  if (tags.some((tag) => tag.includes("秋"))) {
+    parts.push("适合秋季观叶识别");
+  }
+
+  if (tags.includes("行道树")) {
+    parts.push("常见城市行道树");
+  }
+
+  const detail = parts.slice(0, 4).join("，");
+
+  return `${plant.nameCn}属于${plant.family}${plant.genus}。${detail}。`;
+}
 export async function generateMetadata({
   params,
 }: {
@@ -149,18 +237,22 @@ export async function generateMetadata({
   if (!plant) {
     return {
       title: "植物信息｜Plant Atlas World",
+      description: "查看常见植物的分类、形态特征和识别方法。",
     };
   }
 
+  const title = buildPlantTitle(plant);
+  const description = buildPlantDescription(plant);
+
   return {
-    title: `${plant.nameCn}（${plant.nameLatin}）｜特征、识别方法与分类谱系`,
-    description: `${plant.nameCn}属于${plant.family}${plant.genus}，介绍${plant.nameCn}的基础信息、谱系位置、叶片、花、果实、树皮、生长环境、用途和识别方法。`,
+    title,
+    description,
     alternates: {
       canonical: `https://plantatlasworld.com/plant/${plant.slug}`,
     },
     openGraph: {
-      title: `${plant.nameCn}（${plant.nameLatin}）｜植物识别与分类信息`,
-      description: `${plant.nameCn}的分类位置、形态特征、识别方法、近缘植物和常见对比。`,
+      title,
+      description,
       url: `https://plantatlasworld.com/plant/${plant.slug}`,
       siteName: "Plant Atlas World",
       type: "article",
