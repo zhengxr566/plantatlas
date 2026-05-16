@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { plants } from "@/data/plants";
+import { identifyPages } from "@/data/identify";
 
 type Plant = (typeof plants)[number];
 
@@ -23,7 +24,7 @@ function toList(value: unknown): string[] {
 
   if (typeof value === "string") {
     return value
-      .split(/[|、,，]/)
+      .split(/[|、,，;；]/)
       .map((v) => v.trim())
       .filter(Boolean);
   }
@@ -48,7 +49,7 @@ function generateClientComparePairs(): ComparePair[] {
   );
 
   plants.forEach((plant) => {
-    const similarList = toList(plant.similar);
+    const similarList = toList((plant as any).similar);
 
     similarList.forEach((similarName) => {
       const target = plantsByName.get(normalizeName(similarName));
@@ -94,94 +95,145 @@ function buildTree(): Tree {
 
 export default function LineageSidebar() {
   const [openAll, setOpenAll] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const featuredPlants = useMemo(() => plants.slice(0, 6), []);
   const featuredCompares = useMemo(
-    () => generateClientComparePairs().slice(0, 5),
+    () => generateClientComparePairs().slice(0, 6),
     []
   );
+  const featuredIdentifyPages = useMemo(() => identifyPages.slice(0, 6), []);
   const tree = useMemo(() => buildTree(), []);
 
   return (
-    <aside className="lineage-sidebar">
-      <div className="sidebar-section first">
-        <h3>常见植物</h3>
-        <ul>
-          {featuredPlants.map((plant) => (
-            <li key={plant.slug}>
-              <Link href={`/plant/${plant.slug}`}>
-                {plant.nameCn}
-                <span>
-                  {plant.family} · {plant.genus}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <>
+      <button
+        type="button"
+        className="sidebar-mobile-toggle"
+        onClick={() => setMobileOpen((value) => !value)}
+      >
+        {mobileOpen ? "收起谱系导航" : "展开谱系导航"}
+      </button>
 
-      {featuredCompares.length > 0 && (
-        <div className="sidebar-section">
-          <h3>常见植物对比</h3>
+      <aside
+        className={
+          mobileOpen
+            ? "lineage-sidebar lineage-sidebar-open"
+            : "lineage-sidebar"
+        }
+      >
+        <div className="sidebar-section first">
+          <h3>常见植物</h3>
           <ul>
-            {featuredCompares.map((item) => (
-              <li key={item.slug}>
-                <Link href={`/compare/${item.slug}`}>{item.title}</Link>
+            {featuredPlants.map((plant) => (
+              <li key={plant.slug}>
+                <Link href={`/plant/${plant.slug}`}>
+                  {plant.nameCn}
+                  <span>
+                    {plant.family} · {plant.genus}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
         </div>
-      )}
 
-      <div className="sidebar-section">
-        <div className="sidebar-head">
-          <h3>谱系结构</h3>
-          <button type="button" onClick={() => setOpenAll((value) => !value)}>
-            {openAll ? "全部折叠" : "全部展开"}
-          </button>
+        {featuredCompares.length > 0 && (
+          <div className="sidebar-section">
+            <h3>
+              <Link href="/compare" className="sidebar-title-link">
+                常见植物对比
+              </Link>
+            </h3>
+
+            <ul>
+              {featuredCompares.map((item) => (
+                <li key={item.slug}>
+                  <Link href={`/compare/${item.slug}`}>{item.title}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {featuredIdentifyPages.length > 0 && (
+          <div className="sidebar-section">
+            <h3>
+              <Link href="/identify" className="sidebar-title-link">
+                植物识别
+              </Link>
+            </h3>
+
+            <ul>
+              {featuredIdentifyPages.map((page) => (
+                <li key={page.slug}>
+                  <Link href={`/identify/${page.slug}`}>
+                    {page.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="sidebar-section">
+          <div className="sidebar-head">
+            <h3>谱系结构</h3>
+            <button type="button" onClick={() => setOpenAll((value) => !value)}>
+              {openAll ? "全部折叠" : "全部展开"}
+            </button>
+          </div>
+
+          {Object.entries(tree).map(([division, classes]) => (
+            <details key={division} open={openAll}>
+              <summary>{division}</summary>
+
+              {Object.entries(classes).map(([className, orders]) => (
+                <details key={className} open={openAll} className="level-2">
+                  <summary>{className}</summary>
+
+                  {Object.entries(orders).map(([order, families]) => (
+                    <details key={order} open={openAll} className="level-3">
+                      <summary>{order}</summary>
+
+                      {Object.entries(families).map(([family, genera]) => (
+                        <details
+                          key={family}
+                          open={openAll}
+                          className="level-4"
+                        >
+                          <summary>{family}</summary>
+
+                          {Object.entries(genera).map(([genus, species]) => (
+                            <details
+                              key={genus}
+                              open={openAll}
+                              className="level-5"
+                            >
+                              <summary>{genus}</summary>
+
+                              <ul>
+                                {species.map((plant) => (
+                                  <li key={plant.slug}>
+                                    <Link href={`/plant/${plant.slug}`}>
+                                      {plant.nameCn}
+                                      <span>{plant.nameLatin}</span>
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          ))}
+                        </details>
+                      ))}
+                    </details>
+                  ))}
+                </details>
+              ))}
+            </details>
+          ))}
         </div>
-
-        {Object.entries(tree).map(([division, classes]) => (
-          <details key={division} open={openAll}>
-            <summary>{division}</summary>
-
-            {Object.entries(classes).map(([className, orders]) => (
-              <details key={className} open={openAll} className="level-2">
-                <summary>{className}</summary>
-
-                {Object.entries(orders).map(([order, families]) => (
-                  <details key={order} open={openAll} className="level-3">
-                    <summary>{order}</summary>
-
-                    {Object.entries(families).map(([family, genera]) => (
-                      <details key={family} open={openAll} className="level-4">
-                        <summary>{family}</summary>
-
-                        {Object.entries(genera).map(([genus, species]) => (
-                          <details key={genus} open={openAll} className="level-5">
-                            <summary>{genus}</summary>
-
-                            <ul>
-                              {species.map((plant) => (
-                                <li key={plant.slug}>
-                                  <Link href={`/plant/${plant.slug}`}>
-                                    {plant.nameCn}
-                                    <span>{plant.nameLatin}</span>
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </details>
-                        ))}
-                      </details>
-                    ))}
-                  </details>
-                ))}
-              </details>
-            ))}
-          </details>
-        ))}
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -223,13 +223,21 @@ export default async function PlantPage({
         <span>›</span>
         <span>{plant.division}</span>
         <span>›</span>
-        <span>{plant.className}</span>
+        <Link href={`/class/${plant.classSlug}`} className="lineage-node link">
+          {plant.className}
+        </Link>
         <span>›</span>
-        <span>{plant.order}</span>
+        <Link href={`/order/${plant.orderSlug}`} className="lineage-node link">
+          {plant.order}
+        </Link>
         <span>›</span>
-        <Link href={`/family/${plant.familySlug}`}>{plant.family}</Link>
+        <Link href={`/family/${plant.familySlug}`} className="lineage-node link">
+          {plant.family}
+        </Link>
         <span>›</span>
-        <Link href={`/genus/${plant.genusSlug}`}>{plant.genus}</Link>
+        <Link href={`/genus/${plant.genusSlug}`} className="lineage-node link">
+          {plant.genus}
+        </Link>
       </nav>
 
       <h1>{plant.nameCn}</h1>
@@ -253,12 +261,16 @@ export default async function PlantPage({
 
         <div className="info-item">
           <span className="info-label">目：</span>
-          {plant.order}
+          <Link href={`/order/${plant.orderSlug}`} className="link">
+            {plant.order}
+          </Link>
         </div>
 
         <div className="info-item">
           <span className="info-label">纲：</span>
-          {plant.className}
+          <Link href={`/class/${plant.classSlug}`} className="link">
+            {plant.className}
+          </Link>
         </div>
 
         <div className="info-item">
@@ -278,24 +290,30 @@ export default async function PlantPage({
       <div className="lineage-horizontal">
         <span className="lineage-node">{plant.kingdom}</span>
         <span className="lineage-arrow">›</span>
+
         <span className="lineage-node">{plant.division}</span>
         <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{plant.className}</span>
+
+        <Link href={`/class/${plant.classSlug}`} className="lineage-node link">
+          {plant.className}
+        </Link>
         <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{plant.order}</span>
+
+        <Link href={`/order/${plant.orderSlug}`} className="lineage-node link">
+          {plant.order}
+        </Link>
         <span className="lineage-arrow">›</span>
 
         <Link href={`/family/${plant.familySlug}`} className="lineage-node link">
           {plant.family}
         </Link>
-
         <span className="lineage-arrow">›</span>
 
         <Link href={`/genus/${plant.genusSlug}`} className="lineage-node link">
           {plant.genus}
         </Link>
-
         <span className="lineage-arrow">›</span>
+
         <span className="lineage-node">{plant.nameCn}</span>
       </div>
 
@@ -361,8 +379,23 @@ export default async function PlantPage({
 
       <h2>{plant.nameCn}是什么植物</h2>
       <p>
-        {plant.nameCn}在分类上属于{plant.division}、{plant.className}、
-        {plant.order}、{plant.family}、{plant.genus}。
+        {plant.nameCn}在分类上属于{plant.division}、
+        <Link href={`/class/${plant.classSlug}`} className="link">
+          {plant.className}
+        </Link>
+        、
+        <Link href={`/order/${plant.orderSlug}`} className="link">
+          {plant.order}
+        </Link>
+        、
+        <Link href={`/family/${plant.familySlug}`} className="link">
+          {plant.family}
+        </Link>
+        、
+        <Link href={`/genus/${plant.genusSlug}`} className="link">
+          {plant.genus}
+        </Link>
+        。
         {plant.habit ? ` 它的生活型为${plant.habit}。` : ""}
         通过科属关系可以判断它与同科、同属植物之间的亲缘关系，
         也能帮助区分外观相似但分类不同的植物。

@@ -8,7 +8,9 @@ export type Plant = {
   kingdom: string;
   division: string;
   className: string;
+  classSlug?: string;
   order: string;
+  orderSlug?: string;
   family: string;
   familySlug: string;
   genus: string;
@@ -22,6 +24,7 @@ export type Plant = {
   usage?: string[];
   tags?: string[];
   similar?: string[];
+  relatives?: string[];
 };
 
 function splitList(value?: string): string[] {
@@ -57,7 +60,9 @@ export function loadPlants(): Plant[] {
       kingdom: row.kingdom,
       division: row.division,
       className: row.className,
+      classSlug: row.classSlug,
       order: row.order,
+      orderSlug: row.orderSlug,
       family: row.family,
       familySlug: row.familySlug,
       genus: row.genus,

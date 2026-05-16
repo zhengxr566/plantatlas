@@ -202,13 +202,13 @@ export async function generateMetadata({
     title: `${buildCompareTitle(plant1, plant2)}｜识别方法、叶片花果与分类对比`,
     description: buildMetaDescription(plant1, plant2),
     alternates: {
-      canonical: `/compare/${slug}`,
+      canonical: `https://plantatlasworld.com/compare/${slug}`,
     },
     openGraph: {
       title: `${buildCompareTitle(plant1, plant2)}｜Plant Atlas World`,
       description: buildMetaDescription(plant1, plant2),
       type: "article",
-      url: `/compare/${slug}`,
+      url: `https://plantatlasworld.com/compare/${slug}`,
     },
   };
 }
@@ -252,7 +252,7 @@ export default async function ComparePage({
     headline: `${plant1.nameCn}和${plant2.nameCn}的区别`,
     description: buildMetaDescription(plant1, plant2),
     about: [plant1.nameCn, plant2.nameCn],
-    mainEntityOfPage: `/compare/${slug}`,
+    mainEntityOfPage: `https://plantatlasworld.com/compare/${slug}`,
   };
 
   return (
@@ -268,7 +268,13 @@ export default async function ComparePage({
         <Link href="/compare">植物对比</Link>
         <span>›</span>
         <span>
-          {plant1.nameCn} vs {plant2.nameCn}
+          <Link href={`/plant/${plant1.slug}`} className="link">
+            {plant1.nameCn}
+          </Link>
+          {" vs "}
+          <Link href={`/plant/${plant2.slug}`} className="link">
+            {plant2.nameCn}
+          </Link>
         </span>
       </nav>
 
@@ -278,10 +284,44 @@ export default async function ComparePage({
 
       <h2>一句话区别</h2>
       <p>
-        {plant1.nameCn}属于{text(plant1.family)}{text(plant1.genus)}，
-        典型特征是{text(plant1.leaf || plant1.description)}；
-        {plant2.nameCn}属于{text(plant2.family)}{text(plant2.genus)}，
-        典型特征是{text(plant2.leaf || plant2.description)}。
+        <Link href={`/plant/${plant1.slug}`} className="link">
+          {plant1.nameCn}
+        </Link>
+        属于
+        {plant1.familySlug ? (
+          <Link href={`/family/${plant1.familySlug}`} className="link">
+            {text(plant1.family)}
+          </Link>
+        ) : (
+          text(plant1.family)
+        )}
+        {plant1.genusSlug ? (
+          <Link href={`/genus/${plant1.genusSlug}`} className="link">
+            {text(plant1.genus)}
+          </Link>
+        ) : (
+          text(plant1.genus)
+        )}
+        ，典型特征是{text(plant1.leaf || plant1.description)}；
+        <Link href={`/plant/${plant2.slug}`} className="link">
+          {plant2.nameCn}
+        </Link>
+        属于
+        {plant2.familySlug ? (
+          <Link href={`/family/${plant2.familySlug}`} className="link">
+            {text(plant2.family)}
+          </Link>
+        ) : (
+          text(plant2.family)
+        )}
+        {plant2.genusSlug ? (
+          <Link href={`/genus/${plant2.genusSlug}`} className="link">
+            {text(plant2.genus)}
+          </Link>
+        ) : (
+          text(plant2.genus)
+        )}
+        ，典型特征是{text(plant2.leaf || plant2.description)}。
       </p>
 
       <h2>快速对比表</h2>
@@ -289,27 +329,67 @@ export default async function ComparePage({
         <tbody>
           <tr>
             <th scope="row">对比项目</th>
-            <th scope="col">{plant1.nameCn}</th>
-            <th scope="col">{plant2.nameCn}</th>
+            <th scope="col">
+              <Link href={`/plant/${plant1.slug}`} className="link">
+                {plant1.nameCn}
+              </Link>
+            </th>
+            <th scope="col">
+              <Link href={`/plant/${plant2.slug}`} className="link">
+                {plant2.nameCn}
+              </Link>
+            </th>
           </tr>
           <tr>
             <td>中文名 / 学名</td>
             <td>
-              {plant1.nameCn}
+              <Link href={`/plant/${plant1.slug}`} className="link">
+                {plant1.nameCn}
+              </Link>
               {plant1.nameLatin ? ` / ${plant1.nameLatin}` : ""}
             </td>
             <td>
-              {plant2.nameCn}
+              <Link href={`/plant/${plant2.slug}`} className="link">
+                {plant2.nameCn}
+              </Link>
               {plant2.nameLatin ? ` / ${plant2.nameLatin}` : ""}
             </td>
           </tr>
           <tr>
             <td>科 / 属</td>
             <td>
-              {text(plant1.family, "-")} / {text(plant1.genus, "-")}
+              {plant1.familySlug ? (
+                <Link href={`/family/${plant1.familySlug}`} className="link">
+                  {text(plant1.family, "-")}
+                </Link>
+              ) : (
+                text(plant1.family, "-")
+              )}
+              {" / "}
+              {plant1.genusSlug ? (
+                <Link href={`/genus/${plant1.genusSlug}`} className="link">
+                  {text(plant1.genus, "-")}
+                </Link>
+              ) : (
+                text(plant1.genus, "-")
+              )}
             </td>
             <td>
-              {text(plant2.family, "-")} / {text(plant2.genus, "-")}
+              {plant2.familySlug ? (
+                <Link href={`/family/${plant2.familySlug}`} className="link">
+                  {text(plant2.family, "-")}
+                </Link>
+              ) : (
+                text(plant2.family, "-")
+              )}
+              {" / "}
+              {plant2.genusSlug ? (
+                <Link href={`/genus/${plant2.genusSlug}`} className="link">
+                  {text(plant2.genus, "-")}
+                </Link>
+              ) : (
+                text(plant2.genus, "-")
+              )}
             </td>
           </tr>
           <tr>
@@ -355,15 +435,58 @@ export default async function ComparePage({
 
       <div className="compare-lineage-grid">
         <section className="compare-lineage-card">
-          <h3>{plant1.nameCn}的谱系位置</h3>
+          <h3>
+            <Link href={`/plant/${plant1.slug}`} className="link">
+              {plant1.nameCn}
+            </Link>
+            的谱系位置
+          </h3>
           <p>
-            {text(plant1.kingdom)} › {text(plant1.division)} › {text(plant1.className)} › {text(plant1.order)} › {text(plant1.family)} › {text(plant1.genus)}
+            {text(plant1.kingdom)} › {text(plant1.division)} ›{" "}
+            {text(plant1.className)} › {text(plant1.order)} ›{" "}
+            {plant1.familySlug ? (
+              <Link href={`/family/${plant1.familySlug}`} className="link">
+                {text(plant1.family)}
+              </Link>
+            ) : (
+              text(plant1.family)
+            )}{" "}
+            ›{" "}
+            {plant1.genusSlug ? (
+              <Link href={`/genus/${plant1.genusSlug}`} className="link">
+                {text(plant1.genus)}
+              </Link>
+            ) : (
+              text(plant1.genus)
+            )}
           </p>
         </section>
+
         <section className="compare-lineage-card">
-          <h3>{plant2.nameCn}的谱系位置</h3>
+          <h3>
+            <Link href={`/plant/${plant2.slug}`} className="link">
+              {plant2.nameCn}
+            </Link>
+            的谱系位置
+          </h3>
           <p>
-            {text(plant2.kingdom)} › {text(plant2.division)} › {text(plant2.className)} › {text(plant2.order)} › {text(plant2.family)} › {text(plant2.genus)}
+            {text(plant2.kingdom)} › {text(plant2.division)} ›{" "}
+            {text(plant2.className)} › {text(plant2.order)} ›{" "}
+            {plant2.familySlug ? (
+              <Link href={`/family/${plant2.familySlug}`} className="link">
+                {text(plant2.family)}
+              </Link>
+            ) : (
+              text(plant2.family)
+            )}{" "}
+            ›{" "}
+            {plant2.genusSlug ? (
+              <Link href={`/genus/${plant2.genusSlug}`} className="link">
+                {text(plant2.genus)}
+              </Link>
+            ) : (
+              text(plant2.genus)
+            )}
           </p>
         </section>
       </div>
@@ -388,11 +511,21 @@ export default async function ComparePage({
 
       <div className="compare-diff-grid">
         <section>
-          <h3>{plant1.nameCn}更典型的特征</h3>
+          <h3>
+            <Link href={`/plant/${plant1.slug}`} className="link">
+              {plant1.nameCn}
+            </Link>
+            更典型的特征
+          </h3>
           <p>{joinCn(plant1OnlyTags)}</p>
         </section>
         <section>
-          <h3>{plant2.nameCn}更典型的特征</h3>
+          <h3>
+            <Link href={`/plant/${plant2.slug}`} className="link">
+              {plant2.nameCn}
+            </Link>
+            更典型的特征
+          </h3>
           <p>{joinCn(plant2OnlyTags)}</p>
         </section>
       </div>
@@ -400,7 +533,9 @@ export default async function ComparePage({
       <h2>新手识别顺序</h2>
       <p>{buildBeginnerGuide(plant1, plant2)}</p>
 
-      <h2>总结：{plant1.nameCn}和{plant2.nameCn}怎么区分</h2>
+      <h2>
+        总结：{plant1.nameCn}和{plant2.nameCn}怎么区分
+      </h2>
       <p>{buildSummary(plant1, plant2)}</p>
 
       <h2>相关植物</h2>
