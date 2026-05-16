@@ -478,3 +478,57 @@ a {
   border-radius: 12px;
   border: 1px solid #dce8da;
 }
+
+/* =========================
+   Compare Hero Images
+========================= */
+
+.compare-hero {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 20px;
+  align-items: center;
+  margin: 20px 0 28px;
+}
+
+.compare-card {
+  border: 1px solid #e5eee3;
+  border-radius: 14px;
+  padding: 14px;
+  background: #fafdfa;
+}
+
+.compare-card img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.compare-card h2 {
+  margin-top: 12px;
+  margin-bottom: 4px;
+  font-size: 1.1rem;
+}
+
+.compare-card p {
+  color: #5f6b62;
+  font-size: 0.92rem;
+}
+
+.compare-vs {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #6b8a6d;
+}
+
+@media (max-width: 768px) {
+  .compare-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-vs {
+    padding: 4px 0;
+  }
+}

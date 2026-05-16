@@ -1,4 +1,6 @@
+import Image from "next/image";
 import { loadPlants } from "@/lib/loadPlants";
+import { getPlantImage } from "@/lib/getPlantImage";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
@@ -74,31 +76,19 @@ function getCompareTopic(plant1: PlantLike, plant2: PlantLike) {
   if (
     tags.some(
       (tag) =>
-        tag.includes("秋") ||
-        tag.includes("黄叶") ||
-        tag.includes("红叶")
+        tag.includes("秋") || tag.includes("黄叶") || tag.includes("红叶")
     )
   ) {
     return "两种常见秋色树";
   }
 
   if (
-    tags.some(
-      (tag) =>
-        tag.includes("行道树") ||
-        tag.includes("城市绿化")
-    )
+    tags.some((tag) => tag.includes("行道树") || tag.includes("城市绿化"))
   ) {
     return "两种常见行道树";
   }
 
-  if (
-    tags.some(
-      (tag) =>
-        tag.includes("庭院") ||
-        tag.includes("观赏")
-    )
-  ) {
+  if (tags.some((tag) => tag.includes("庭院") || tag.includes("观赏"))) {
     return "两种常见园林植物";
   }
 
@@ -109,10 +99,7 @@ function getCompareTopic(plant1: PlantLike, plant2: PlantLike) {
   return "两种常见植物";
 }
 
-function buildCompareTitle(
-  plant1: PlantLike,
-  plant2: PlantLike
-) {
+function buildCompareTitle(plant1: PlantLike, plant2: PlantLike) {
   return `${plant1.nameCn} vs ${plant2.nameCn}｜如何快速区分${getCompareTopic(
     plant1,
     plant2
@@ -281,6 +268,9 @@ export default async function ComparePage({
 
   if (!plant1 || !plant2) notFound();
 
+  const image1 = await getPlantImage(plant1.nameLatin);
+  const image2 = await getPlantImage(plant2.nameLatin);
+
   const sharedTags = getSharedTags(plant1, plant2);
   const plant1OnlyTags = getOnlyTags(plant1, plant2);
   const plant2OnlyTags = getOnlyTags(plant2, plant1);
@@ -300,7 +290,7 @@ export default async function ComparePage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: `${plant1.nameCn}和${plant2.nameCn}的区别`,
+    headline: buildCompareTitle(plant1, plant2),
     description: buildMetaDescription(plant1, plant2),
     about: [plant1.nameCn, plant2.nameCn],
     mainEntityOfPage: `https://plantatlasworld.com/compare/${slug}`,
@@ -332,6 +322,52 @@ export default async function ComparePage({
       <h1>
         {plant1.nameCn} vs {plant2.nameCn}：怎么快速区分
       </h1>
+
+      {(image1 || image2) && (
+        <div className="compare-hero">
+          <div className="compare-card">
+            {image1 && (
+              <Image
+                src={image1}
+                alt={`${plant1.nameCn}（${plant1.nameLatin || ""}）植物图片`}
+                width={800}
+                height={600}
+                priority
+              />
+            )}
+
+            <h2>
+              <Link href={`/plant/${plant1.slug}`} className="link">
+                {plant1.nameCn}
+              </Link>
+            </h2>
+
+            {plant1.nameLatin && <p>{plant1.nameLatin}</p>}
+          </div>
+
+          <div className="compare-vs">VS</div>
+
+          <div className="compare-card">
+            {image2 && (
+              <Image
+                src={image2}
+                alt={`${plant2.nameCn}（${plant2.nameLatin || ""}）植物图片`}
+                width={800}
+                height={600}
+                priority
+              />
+            )}
+
+            <h2>
+              <Link href={`/plant/${plant2.slug}`} className="link">
+                {plant2.nameCn}
+              </Link>
+            </h2>
+
+            {plant2.nameLatin && <p>{plant2.nameLatin}</p>}
+          </div>
+        </div>
+      )}
 
       <p className="compare-intro">{buildIntro(plant1, plant2)}</p>
 
@@ -378,6 +414,7 @@ export default async function ComparePage({
       </p>
 
       <h2>快速对比表</h2>
+
       <table className="compare-table">
         <tbody>
           <tr>
@@ -572,6 +609,7 @@ export default async function ComparePage({
           </h3>
           <p>{joinCn(plant1OnlyTags)}</p>
         </section>
+
         <section>
           <h3>
             <Link href={`/plant/${plant2.slug}`} className="link">
@@ -598,11 +636,13 @@ export default async function ComparePage({
             查看{plant1.nameCn}的分类和识别信息
           </Link>
         </li>
+
         <li>
           <Link href={`/plant/${plant2.slug}`} className="link">
             查看{plant2.nameCn}的分类和识别信息
           </Link>
         </li>
+
         {relatedPlants.map((p) => (
           <li key={p.slug}>
             <Link href={`/plant/${p.slug}`} className="link">
