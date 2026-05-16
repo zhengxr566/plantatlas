@@ -63,6 +63,18 @@ export default function Home() {
         ))}
       </ul>
 
+      <h2>植物对比</h2>
+
+      <p>
+        查看常见植物之间的区别，包括叶片、花、果实、树形和分类关系。
+      </p>
+
+      <p>
+        <Link href="/compare" className="link">
+          浏览全部植物对比
+        </Link>
+      </p>
+      
       <h2>常见植物对比</h2>
       <p>
         很多植物在不开花或幼树阶段容易被混淆。对比页面会从分类位置、叶片、
