@@ -465,3 +465,16 @@ a {
 .card-grid.compact {
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 }
+
+.plant-hero-image {
+  margin: 16px 0 20px;
+}
+
+.plant-hero-image img {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #dce8da;
+}

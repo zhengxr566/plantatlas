@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadPlants } from "@/lib/loadPlants";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Image from "next/image";
+import { getPlantImage } from "@/lib/getPlantImage";
 
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -270,7 +272,9 @@ export default async function PlantPage({
 
   const plant = plants.find((p) => p.slug === slug);
   if (!plant) notFound();
-
+  const plantImage = await getPlantImage(
+    plant.nameLatin
+  );
   const sameFamilyPlants = plants.filter(
     (p) => p.familySlug === plant.familySlug && p.slug !== plant.slug
   );
@@ -334,7 +338,17 @@ export default async function PlantPage({
 
       <h1>{plant.nameCn}</h1>
       <p className="latin">{plant.nameLatin}</p>
-
+      {plantImage && (
+        <div className="plant-hero-image">
+          <Image
+            src={plantImage}
+            alt={`${plant.nameCn}（${plant.nameLatin}）植物图片`}
+            width={1200}
+            height={800}
+            priority
+          />
+        </div>
+      )}
       <h2>基础信息</h2>
       <div className="info-inline">
         <div className="info-item">
