@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+import { parse } from "csv-parse/sync";
 import { loadPlants, type Plant } from "@/lib/loadPlants";
 import {
   getPartTags,
@@ -17,16 +20,26 @@ export type PartOverlap = {
   sharedTags: string[];
 };
 
+// data/compare.csv 中手写的对比内容
+export type CompareNote = {
+  keyPoints: string[];
+  intro: string;
+};
+
 export type ComparePair = {
   slug: string;
   title: string;
   plantA: Plant;
   plantB: Plant;
-  // similar：plants.csv 手动指定；photo：由图片标签自动发现
-  sources: ("similar" | "photo")[];
+  // similar：plants.csv 手动指定；manual：compare.csv 手写；photo：由图片标签自动发现
+  sources: ("similar" | "manual" | "photo")[];
   score: number;
   // 两者都有照片的部位，以及该部位共享的标签
   partOverlaps: PartOverlap[];
+  note?: CompareNote;
+  // 有实拍图逐部位对比或手写要点时才允许被搜索引擎收录，
+  // 只有模板文字的页面设为 noindex，避免被判定为批量生成的低质量内容
+  indexable: boolean;
 };
 
 function toList(value: unknown): string[] {
@@ -50,6 +63,32 @@ function normalizeName(value: unknown): string {
 
 function makePairKey(slugA: string, slugB: string) {
   return [slugA, slugB].sort().join("__");
+}
+
+function loadCompareNotes() {
+  const filePath = path.join(process.cwd(), "data", "compare.csv");
+  if (!fs.existsSync(filePath)) return [];
+
+  const rows = parse(fs.readFileSync(filePath, "utf8"), {
+    bom: true,
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+  }) as Record<string, string>[];
+
+  return rows
+    .filter((row) => row.plantA && row.plantB)
+    .map((row) => ({
+      plantA: row.plantA,
+      plantB: row.plantB,
+      note: {
+        keyPoints: (row.keyPoints || "")
+          .split("|")
+          .map((v) => v.trim())
+          .filter(Boolean),
+        intro: row.intro || "",
+      },
+    }));
 }
 
 function getPartOverlaps(
@@ -90,7 +129,7 @@ export function generateComparePairs(): ComparePair[] {
 
   const pairs = new Map<string, ComparePair>();
 
-  function addPair(a: Plant, b: Plant, source: "similar" | "photo") {
+  function addPair(a: Plant, b: Plant, source: ComparePair["sources"][number]) {
     const key = makePairKey(a.slug, b.slug);
     const existing = pairs.get(key);
     if (existing) {
@@ -112,6 +151,7 @@ export function generateComparePairs(): ComparePair[] {
       sources: [source],
       score: scorePair(a, b, overlaps),
       partOverlaps: overlaps,
+      indexable: overlaps.length > 0,
     });
   }
 
@@ -128,7 +168,17 @@ export function generateComparePairs(): ComparePair[] {
     });
   });
 
-  // 2. 图片标签自动发现：同一部位共享标签越多，越容易混淆
+  // 2. compare.csv 中手写的对比（已存在的对比保持原 URL，新对比为 plantA-vs-plantB）
+  const plantsBySlug = new Map(plants.map((plant) => [plant.slug, plant]));
+  const notes = loadCompareNotes();
+
+  notes.forEach(({ plantA, plantB }) => {
+    const a = plantsBySlug.get(plantA);
+    const b = plantsBySlug.get(plantB);
+    if (a && b && a.slug !== b.slug) addPair(a, b, "manual");
+  });
+
+  // 3. 图片标签自动发现：同一部位共享标签越多，越容易混淆
   const photoPlants = plants.filter((p) => photosByPlant.has(p.slug));
   const candidates: { a: Plant; b: Plant; score: number }[] = [];
 
@@ -166,7 +216,16 @@ export function generateComparePairs(): ComparePair[] {
       }
     });
 
-  return Array.from(pairs.values()).sort((x, y) => y.score - x.score);
+  notes.forEach(({ plantA, plantB, note }) => {
+    const pair = pairs.get(makePairKey(plantA, plantB));
+    if (!pair) return;
+    pair.note = note;
+    if (note.keyPoints.length > 0 || note.intro) pair.indexable = true;
+  });
+
+  return Array.from(pairs.values()).sort(
+    (x, y) => Number(y.indexable) - Number(x.indexable) || y.score - x.score
+  );
 }
 
 // 按两种植物查找对比关系（不区分顺序）

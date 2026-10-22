@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Header from "./Header";
 import LineageSidebar from "./LineageSidebar";
@@ -11,23 +11,6 @@ export default function AtlasLayout({
   children: React.ReactNode;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(300);
-  const [collapsed, setCollapsed] = useState(false);
-
-  // ✅ 只在客户端判断屏幕宽度
-  useEffect(() => {
-    function handleResize() {
-      if (window.innerWidth < 980) {
-        setCollapsed(true);
-      } else {
-        setCollapsed(false);
-      }
-    }
-
-    handleResize(); // 初始化执行一次
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   function startResize(e: React.MouseEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -62,25 +45,21 @@ export default function AtlasLayout({
       <main className="page">
         <div
           className="atlas-layout"
-          style={{
-            gridTemplateColumns: collapsed
-              ? "0px minmax(0, 1fr)" // ✅ 完全收起
-              : `${sidebarWidth}px minmax(0, 1fr)`,
-          }}
+          // 窄屏布局由 globals.css 的媒体查询处理，不在 JS 里判断屏幕宽度，
+          // 避免服务端渲染和客户端首次渲染不一致导致的布局跳动（CLS）
+          style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}
         >
           {/* 左侧 */}
-          {!collapsed && (
-            <div className="sidebar-shell">
-              <LineageSidebar />
+          <div className="sidebar-shell">
+            <LineageSidebar />
 
-              <div
-                className="resize-handle"
-                onMouseDown={startResize}
-                role="separator"
-                aria-orientation="vertical"
-              />
-            </div>
-          )}
+            <div
+              className="resize-handle"
+              onMouseDown={startResize}
+              role="separator"
+              aria-orientation="vertical"
+            />
+          </div>
 
           {/* 右侧 */}
           <article className="document-panel">{children}</article>

@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "upload.wikimedia.org",
       },
+      {
+        // 维基百科 API 目前返回的缩略图域名
+        protocol: "https",
+        hostname: "thumb.wikimedia.org",
+      },
     ],
   },
 };

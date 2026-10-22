@@ -5,7 +5,7 @@
 
 ```bash
 npm run dev      # 本地预览 http://localhost:3000
-npm run photos   # 同步新图片到 data/photos.csv 并检查标签
+npm run photos   # 同步新图片到 data/photos.csv，检查标签和 compare.csv
 npm run build
 ```
 
@@ -40,6 +40,29 @@ npm run build
    **同一个特征只用一种写法**，否则两张图不会被识别为相似。
 
 4. **提交并部署**。页面会自动生成，不需要改代码。
+
+## 手写对比要点（data/compare.csv）
+
+模板生成的文字对搜索引擎价值有限，**给重点对比写几句真正有用的区别**是提升排名最有效的方式。
+
+```csv
+plantA,plantB,keyPoints,intro
+ginkgo-biloba,liriodendron-chinense,看叶尖：银杏叶顶端波状或有缺刻，鹅掌楸叶顶端平截|看叶脉：银杏为二叉分枝的放射状脉，鹅掌楸为羽状网脉,
+```
+
+- `plantA` / `plantB`：plants.csv 中的 slug，页面 URL 为 `/compare/plantA-vs-plantB`（已有的对比沿用原 URL）
+- `keyPoints`：核心区别，`|` 分隔，显示在对比页顶部的「核心区别」框中
+- `intro`：可选，替换模板生成的开头段落
+- 这里写的对比即使不在 `similar` 列中也会生成页面
+
+## 收录规则（noindex）
+
+对比页满足以下任一条件才会被收录、并出现在 sitemap 中：
+
+1. 两种植物在同一部位都有实拍图（会显示逐部位照片对比）
+2. 在 compare.csv 中写了 `keyPoints` 或 `intro`
+
+其他对比页仍可访问、内部链接仍可跟踪，但带有 `noindex`，等补充内容后会自动变为可收录。
 
 ## 页面是怎么自动生成的
 

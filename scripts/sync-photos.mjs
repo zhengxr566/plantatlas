@@ -1,4 +1,4 @@
-// 扫描 public/photos/<植物slug>/ 下的图片，同步到 data/photos.csv。
+// 扫描 public/photos/<植物slug>/ 下的图片，同步到 data/photos.csv，并检查 data/compare.csv。
 // - 新图片自动追加一行：plant 取文件夹名，part 取文件名前缀（leaf-01.jpg → leaf）
 // - 自动填写 width / height
 // - 检查植物 slug、部位、标签是否合法，并提示没有标签的图片
@@ -118,6 +118,25 @@ for (const row of rows) {
     .forEach((tag) =>
       warnings.push(`${row.file}: 标签 "${tag}" 不在 tags.md 中（新标签请先加到 tags.md）`)
     );
+}
+
+const comparePath = path.join(root, "data", "compare.csv");
+if (fs.existsSync(comparePath)) {
+  parse(fs.readFileSync(comparePath, "utf8"), {
+    bom: true,
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+  }).forEach((row, i) => {
+    [row.plantA, row.plantB]
+      .filter((slug) => !plantSlugs.has(slug))
+      .forEach((slug) =>
+        warnings.push(`compare.csv 第 ${i + 2} 行: "${slug || ""}" 不在 plants.csv 中`)
+      );
+    if (!row.keyPoints && !row.intro) {
+      warnings.push(`compare.csv 第 ${i + 2} 行: keyPoints 和 intro 都是空的`);
+    }
+  });
 }
 
 rows.sort((a, b) => a.file.localeCompare(b.file));

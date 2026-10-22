@@ -274,6 +274,7 @@ export async function generateMetadata({
     alternates: {
       canonical: `https://plantatlasworld.com/compare/${canonicalSlug}`,
     },
+    ...(pair?.indexable ? {} : { robots: { index: false, follow: true } }),
     openGraph: {
       title: buildCompareTitle(plant1, plant2),
       description: buildMetaDescription(plant1, plant2),
@@ -432,7 +433,20 @@ export default async function ComparePage({
         </div>
       )}
 
-      <p className="compare-intro">{buildIntro(plant1, plant2)}</p>
+      {pair?.note && pair.note.keyPoints.length > 0 && (
+        <section className="key-points">
+          <h2>核心区别</h2>
+          <ol>
+            {pair.note.keyPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <p className="compare-intro">
+        {pair?.note?.intro || buildIntro(plant1, plant2)}
+      </p>
 
       {comparedParts.length > 0 && (
         <>

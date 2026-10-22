@@ -13,7 +13,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://plantatlasworld.com";
 
   const plants = loadPlants();
-  const comparePairs = generateComparePairs();
+  // 只提交可收录的对比页（有实拍图对比或手写要点）
+  const comparePairs = generateComparePairs().filter((p) => p.indexable);
   const photosByPlant = groupPhotosByPlant(loadPhotos());
 
   function photoUrls(plantSlug: string, parts?: string[]) {

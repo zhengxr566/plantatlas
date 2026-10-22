@@ -625,3 +625,21 @@ a {
   color: #7a867c;
   font-size: 0.85rem;
 }
+
+.key-points {
+  margin: 20px 0;
+  padding: 14px 18px;
+  border: 1px solid #cfe0cf;
+  border-left: 4px solid #6b8a6d;
+  border-radius: 10px;
+  background: #f6faf5;
+}
+
+.key-points h2 {
+  margin-top: 0;
+}
+
+.key-points ol {
+  margin-bottom: 0;
+  padding-left: 20px;
+}
