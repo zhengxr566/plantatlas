@@ -532,3 +532,96 @@ a {
     padding: 4px 0;
   }
 }
+/* =========================
+   Photos & Part Compare
+========================= */
+
+.photo-figure {
+  margin: 0 0 16px;
+}
+
+.photo-figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid #dce8da;
+  background: #f3f7f2;
+}
+
+.photo-figure figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.88rem;
+}
+
+.photo-caption {
+  color: #2f3d32;
+}
+
+.photo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.photo-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #eef5ec;
+  color: #4b6b4e;
+  font-size: 0.8rem;
+}
+
+.photo-credit {
+  color: #7a867c;
+  font-size: 0.8rem;
+}
+
+.photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+
+.part-compare {
+  margin: 20px 0 28px;
+}
+
+.part-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.part-compare-label {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.tag-diff {
+  padding-left: 18px;
+  font-size: 0.92rem;
+}
+
+.ad-slot {
+  margin: 24px 0;
+  min-height: 100px;
+}
+
+@media (max-width: 768px) {
+  .part-compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.site-footer {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 16px 28px;
+  color: #7a867c;
+  font-size: 0.85rem;
+}

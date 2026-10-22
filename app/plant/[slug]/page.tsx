@@ -5,6 +5,18 @@ import { loadPlants } from "@/lib/loadPlants";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Image from "next/image";
 import { getPlantImage } from "@/lib/getPlantImage";
+import PhotoFigure from "@/app/components/PhotoFigure";
+import AdSlot from "@/app/components/AdSlot";
+import {
+  buildImageObjectJsonLd,
+  buildPhotoAlt,
+  getPhotoParts,
+  loadPhotos,
+} from "@/lib/loadPhotos";
+import {
+  generateComparePairs,
+  getPairsForPlant,
+} from "@/lib/generateComparePairs";
 
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -272,9 +284,13 @@ export default async function PlantPage({
 
   const plant = plants.find((p) => p.slug === slug);
   if (!plant) notFound();
-  const plantImage = await getPlantImage(
-    plant.nameLatin
-  );
+  const photos = loadPhotos().filter((p) => p.plant === plant.slug);
+  const photoParts = getPhotoParts(photos);
+  const heroPhoto =
+    photos.find((p) => p.part === "habit") ??
+    photos.find((p) => p.part === "leaf") ??
+    photos[0];
+  const plantImage = heroPhoto?.src ?? (await getPlantImage(plant.nameLatin));
   const sameFamilyPlants = plants.filter(
     (p) => p.familySlug === plant.familySlug && p.slug !== plant.slug
   );
@@ -283,8 +299,7 @@ export default async function PlantPage({
     (p) => p.genusSlug === plant.genusSlug && p.slug !== plant.slug
   );
 
-  const similarNames = toList(plant.similar);
-  const comparePlants = plants.filter((p) => similarNames.includes(p.nameCn));
+  const comparePairs = getPairsForPlant(generateComparePairs(), plant.slug);
 
   const tags = toList(plant.tags);
   const usage = toList(plant.usage);
@@ -305,6 +320,13 @@ export default async function PlantPage({
       name: plant.nameCn,
       alternateName: plant.nameLatin,
     },
+    image: photos.map((p) =>
+      buildImageObjectJsonLd(
+        p,
+        plant,
+        `https://plantatlasworld.com/plant/${plant.slug}`
+      )
+    ),
   };
 
   return (
@@ -342,12 +364,44 @@ export default async function PlantPage({
         <div className="plant-hero-image">
           <Image
             src={plantImage}
-            alt={`${plant.nameCn}（${plant.nameLatin}）植物图片`}
-            width={1200}
-            height={800}
-            priority
+            alt={
+              heroPhoto
+                ? buildPhotoAlt(heroPhoto, plant)
+                : `${plant.nameCn}（${plant.nameLatin}）植物图片`
+            }
+            width={heroPhoto?.width ?? 1200}
+            height={heroPhoto?.height ?? 800}
+            sizes="(max-width: 980px) 100vw, 70vw"
+            preload
           />
         </div>
+      )}
+
+      {photoParts.length > 0 && (
+        <>
+          <h2>{plant.nameCn}实拍图片</h2>
+          <div className="photo-gallery">
+            {photoParts.map((part) => (
+              <div key={part.slug}>
+                <PhotoFigure
+                  photo={photos.find((p) => p.part === part.slug)!}
+                  plant={plant}
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  showTags={false}
+                />
+                <Link
+                  href={`/plant/${plant.slug}/${part.slug}`}
+                  className="link"
+                >
+                  {plant.nameCn}
+                  {part.noun}图片（
+                  {photos.filter((p) => p.part === part.slug).length}张）›
+                </Link>
+              </div>
+            ))}
+          </div>
+          <AdSlot />
+        </>
       )}
       <h2>基础信息</h2>
       <div className="info-inline">
@@ -465,12 +519,12 @@ export default async function PlantPage({
       )}
 
       <h2>常见对比</h2>
-      {comparePlants.length > 0 ? (
+      {comparePairs.length > 0 ? (
         <ul>
-          {comparePlants.map((p) => (
-            <li key={p.slug}>
-              <Link href={`/compare/${plant.slug}-vs-${p.slug}`} className="link">
-                {plant.nameCn}和{p.nameCn}的区别
+          {comparePairs.map((pair) => (
+            <li key={pair.slug}>
+              <Link href={`/compare/${pair.slug}`} className="link">
+                {pair.title}
               </Link>
             </li>
           ))}

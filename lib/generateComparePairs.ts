@@ -1,8 +1,32 @@
-import { loadPlants } from "@/lib/loadPlants";
+import { loadPlants, type Plant } from "@/lib/loadPlants";
+import {
+  getPartTags,
+  groupPhotosByPlant,
+  loadPhotos,
+  type PlantPhoto,
+} from "@/lib/loadPhotos";
+import { plantParts } from "@/data/parts";
 
-type ComparePair = {
+// 两种植物同一部位的照片至少共享多少个标签，才自动生成对比页
+const MIN_SHARED_PHOTO_TAGS = 2;
+// 每种植物最多自动生成多少组对比，避免大量低质量页面
+const MAX_AUTO_PAIRS_PER_PLANT = 8;
+
+export type PartOverlap = {
+  part: string;
+  sharedTags: string[];
+};
+
+export type ComparePair = {
   slug: string;
   title: string;
+  plantA: Plant;
+  plantB: Plant;
+  // similar：plants.csv 手动指定；photo：由图片标签自动发现
+  sources: ("similar" | "photo")[];
+  score: number;
+  // 两者都有照片的部位，以及该部位共享的标签
+  partOverlaps: PartOverlap[];
 };
 
 function toList(value: unknown): string[] {
@@ -28,36 +52,133 @@ function makePairKey(slugA: string, slugB: string) {
   return [slugA, slugB].sort().join("__");
 }
 
+function getPartOverlaps(
+  photosA: PlantPhoto[],
+  photosB: PlantPhoto[]
+): PartOverlap[] {
+  return plantParts
+    .filter(
+      (part) =>
+        photosA.some((p) => p.part === part.slug) &&
+        photosB.some((p) => p.part === part.slug)
+    )
+    .map((part) => {
+      const tagsB = getPartTags(photosB, part.slug);
+      return {
+        part: part.slug,
+        sharedTags: getPartTags(photosA, part.slug).filter((tag) =>
+          tagsB.includes(tag)
+        ),
+      };
+    });
+}
+
+function scorePair(a: Plant, b: Plant, overlaps: PartOverlap[]) {
+  const sharedTagCount = overlaps.reduce(
+    (sum, o) => sum + o.sharedTags.length,
+    0
+  );
+  let score = sharedTagCount * 2 + overlaps.length;
+  if (a.genusSlug && a.genusSlug === b.genusSlug) score += 3;
+  else if (a.familySlug && a.familySlug === b.familySlug) score += 1;
+  return score;
+}
+
 export function generateComparePairs(): ComparePair[] {
   const plants = loadPlants();
+  const photosByPlant = groupPhotosByPlant(loadPhotos());
 
-  const pairs: ComparePair[] = [];
-  const seen = new Set<string>();
+  const pairs = new Map<string, ComparePair>();
 
+  function addPair(a: Plant, b: Plant, source: "similar" | "photo") {
+    const key = makePairKey(a.slug, b.slug);
+    const existing = pairs.get(key);
+    if (existing) {
+      if (!existing.sources.includes(source)) existing.sources.push(source);
+      return;
+    }
+
+    const overlaps = getPartOverlaps(
+      photosByPlant.get(a.slug) ?? [],
+      photosByPlant.get(b.slug) ?? []
+    );
+
+    pairs.set(key, {
+      // 先出现的植物在前，保持已被收录的 URL 不变
+      slug: `${a.slug}-vs-${b.slug}`,
+      title: `${a.nameCn}和${b.nameCn}的区别`,
+      plantA: a,
+      plantB: b,
+      sources: [source],
+      score: scorePair(a, b, overlaps),
+      partOverlaps: overlaps,
+    });
+  }
+
+  // 1. plants.csv 中手动维护的 similar
   const plantsByName = new Map(
     plants.map((plant) => [normalizeName(plant.nameCn), plant])
   );
 
   plants.forEach((plant) => {
-    const similarList = toList(plant.similar);
-
-    similarList.forEach((similarName) => {
+    toList(plant.similar).forEach((similarName) => {
       const target = plantsByName.get(normalizeName(similarName));
-
-      if (!target) return;
-      if (target.slug === plant.slug) return;
-
-      const pairKey = makePairKey(plant.slug, target.slug);
-      if (seen.has(pairKey)) return;
-
-      seen.add(pairKey);
-
-      pairs.push({
-        slug: `${plant.slug}-vs-${target.slug}`,
-        title: `${plant.nameCn}和${target.nameCn}的区别`,
-      });
+      if (!target || target.slug === plant.slug) return;
+      addPair(plant, target, "similar");
     });
   });
 
-  return pairs;
+  // 2. 图片标签自动发现：同一部位共享标签越多，越容易混淆
+  const photoPlants = plants.filter((p) => photosByPlant.has(p.slug));
+  const candidates: { a: Plant; b: Plant; score: number }[] = [];
+
+  photoPlants.forEach((a, i) => {
+    photoPlants.slice(i + 1).forEach((b) => {
+      const overlaps = getPartOverlaps(
+        photosByPlant.get(a.slug)!,
+        photosByPlant.get(b.slug)!
+      );
+      const shared = overlaps.reduce((n, o) => n + o.sharedTags.length, 0);
+      if (shared < MIN_SHARED_PHOTO_TAGS) return;
+      candidates.push({ a, b, score: scorePair(a, b, overlaps) });
+    });
+  });
+
+  const autoCount = new Map<string, number>();
+  candidates
+    .sort((x, y) => y.score - x.score)
+    .forEach(({ a, b }) => {
+      const [first, second] = [a, b].sort((x, y) =>
+        x.slug.localeCompare(y.slug)
+      );
+      const isNew = !pairs.has(makePairKey(a.slug, b.slug));
+      if (
+        isNew &&
+        ((autoCount.get(a.slug) ?? 0) >= MAX_AUTO_PAIRS_PER_PLANT ||
+          (autoCount.get(b.slug) ?? 0) >= MAX_AUTO_PAIRS_PER_PLANT)
+      ) {
+        return;
+      }
+      addPair(first, second, "photo");
+      if (isNew) {
+        autoCount.set(a.slug, (autoCount.get(a.slug) ?? 0) + 1);
+        autoCount.set(b.slug, (autoCount.get(b.slug) ?? 0) + 1);
+      }
+    });
+
+  return Array.from(pairs.values()).sort((x, y) => y.score - x.score);
+}
+
+// 按两种植物查找对比关系（不区分顺序）
+export function findComparePair(
+  pairs: ComparePair[],
+  slugA: string,
+  slugB: string
+) {
+  const key = makePairKey(slugA, slugB);
+  return pairs.find((p) => makePairKey(p.plantA.slug, p.plantB.slug) === key);
+}
+
+export function getPairsForPlant(pairs: ComparePair[], slug: string) {
+  return pairs.filter((p) => p.plantA.slug === slug || p.plantB.slug === slug);
 }

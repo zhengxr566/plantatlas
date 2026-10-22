@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Header from "./Header";
 import LineageSidebar from "./LineageSidebar";
 
@@ -85,6 +86,14 @@ export default function AtlasLayout({
           <article className="document-panel">{children}</article>
         </div>
       </main>
+
+      <footer className="site-footer">
+        <Link href="/compare">植物对比</Link>
+        <span>·</span>
+        <Link href="/identify">植物识别</Link>
+        <span>·</span>
+        <Link href="/privacy">隐私政策与图片版权</Link>
+      </footer>
     </>
   );
 }

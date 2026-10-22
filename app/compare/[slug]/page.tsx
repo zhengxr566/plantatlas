@@ -1,10 +1,25 @@
 import Image from "next/image";
 import { loadPlants } from "@/lib/loadPlants";
 import { getPlantImage } from "@/lib/getPlantImage";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import PartCompare from "@/app/components/PartCompare";
+import AdSlot from "@/app/components/AdSlot";
 import type { Metadata } from "next";
+import {
+  findComparePair,
+  generateComparePairs,
+} from "@/lib/generateComparePairs";
+import {
+  absoluteUrl,
+  buildImageObjectJsonLd,
+  buildPhotoAlt,
+  groupPhotosByPlant,
+  loadPhotos,
+  type PlantPhoto,
+} from "@/lib/loadPhotos";
+import { getPart } from "@/data/parts";
 
 type PlantLike = {
   slug: string;
@@ -97,6 +112,15 @@ function getCompareTopic(plant1: PlantLike, plant2: PlantLike) {
   }
 
   return "两种常见植物";
+}
+
+// 优先使用自己拍摄的树形/叶片照片作为首图，没有时退回维基百科图片
+function pickHeroPhoto(photos: PlantPhoto[]) {
+  return (
+    photos.find((p) => p.part === "habit") ??
+    photos.find((p) => p.part === "leaf") ??
+    photos[0]
+  );
 }
 
 function buildCompareTitle(plant1: PlantLike, plant2: PlantLike) {
@@ -236,17 +260,26 @@ export async function generateMetadata({
     };
   }
 
+  const pair = findComparePair(generateComparePairs(), slug1, slug2);
+  const canonicalSlug = pair?.slug ?? slug;
+  const photosByPlant = groupPhotosByPlant(loadPhotos());
+  const ogImages = [plant1, plant2]
+    .map((p) => pickHeroPhoto(photosByPlant.get(p.slug) ?? []))
+    .filter((p): p is PlantPhoto => Boolean(p))
+    .map((p) => ({ url: absoluteUrl(p.src), width: p.width, height: p.height }));
+
   return {
     title: buildCompareTitle(plant1, plant2),
     description: buildMetaDescription(plant1, plant2),
     alternates: {
-      canonical: `https://plantatlasworld.com/compare/${slug}`,
+      canonical: `https://plantatlasworld.com/compare/${canonicalSlug}`,
     },
     openGraph: {
       title: buildCompareTitle(plant1, plant2),
       description: buildMetaDescription(plant1, plant2),
       type: "article",
-      url: `https://plantatlasworld.com/compare/${slug}`,
+      url: `https://plantatlasworld.com/compare/${canonicalSlug}`,
+      images: ogImages,
     },
   };
 }
@@ -268,8 +301,20 @@ export default async function ComparePage({
 
   if (!plant1 || !plant2) notFound();
 
-  const image1 = await getPlantImage(plant1.nameLatin);
-  const image2 = await getPlantImage(plant2.nameLatin);
+  // 反向 URL（b-vs-a）永久跳转到规范 URL，避免重复内容
+  const pair = findComparePair(generateComparePairs(), slug1, slug2);
+  if (pair && pair.slug !== slug) permanentRedirect(`/compare/${pair.slug}`);
+
+  const photosByPlant = groupPhotosByPlant(loadPhotos());
+  const photos1 = photosByPlant.get(plant1.slug) ?? [];
+  const photos2 = photosByPlant.get(plant2.slug) ?? [];
+  const hero1 = pickHeroPhoto(photos1);
+  const hero2 = pickHeroPhoto(photos2);
+  const comparedParts = (pair?.partOverlaps ?? []).map((o) => o.part);
+
+  const image1 = hero1?.src ?? (await getPlantImage(plant1.nameLatin));
+  const image2 = hero2?.src ?? (await getPlantImage(plant2.nameLatin));
+  const pageUrl = `https://plantatlasworld.com/compare/${slug}`;
 
   const sharedTags = getSharedTags(plant1, plant2);
   const plant1OnlyTags = getOnlyTags(plant1, plant2);
@@ -293,7 +338,15 @@ export default async function ComparePage({
     headline: buildCompareTitle(plant1, plant2),
     description: buildMetaDescription(plant1, plant2),
     about: [plant1.nameCn, plant2.nameCn],
-    mainEntityOfPage: `https://plantatlasworld.com/compare/${slug}`,
+    mainEntityOfPage: pageUrl,
+    image: [
+      ...photos1
+        .filter((p) => comparedParts.includes(p.part) || p === hero1)
+        .map((p) => buildImageObjectJsonLd(p, plant1, pageUrl)),
+      ...photos2
+        .filter((p) => comparedParts.includes(p.part) || p === hero2)
+        .map((p) => buildImageObjectJsonLd(p, plant2, pageUrl)),
+    ],
   };
 
   return (
@@ -329,10 +382,15 @@ export default async function ComparePage({
             {image1 && (
               <Image
                 src={image1}
-                alt={`${plant1.nameCn}（${plant1.nameLatin || ""}）植物图片`}
-                width={800}
-                height={600}
-                priority
+                alt={
+                  hero1
+                    ? buildPhotoAlt(hero1, plant1)
+                    : `${plant1.nameCn}（${plant1.nameLatin || ""}）植物图片`
+                }
+                width={hero1?.width ?? 800}
+                height={hero1?.height ?? 600}
+                sizes="(max-width: 768px) 100vw, 45vw"
+                preload
               />
             )}
 
@@ -351,10 +409,15 @@ export default async function ComparePage({
             {image2 && (
               <Image
                 src={image2}
-                alt={`${plant2.nameCn}（${plant2.nameLatin || ""}）植物图片`}
-                width={800}
-                height={600}
-                priority
+                alt={
+                  hero2
+                    ? buildPhotoAlt(hero2, plant2)
+                    : `${plant2.nameCn}（${plant2.nameLatin || ""}）植物图片`
+                }
+                width={hero2?.width ?? 800}
+                height={hero2?.height ?? 600}
+                sizes="(max-width: 768px) 100vw, 45vw"
+                preload
               />
             )}
 
@@ -370,6 +433,30 @@ export default async function ComparePage({
       )}
 
       <p className="compare-intro">{buildIntro(plant1, plant2)}</p>
+
+      {comparedParts.length > 0 && (
+        <>
+          <h2>实拍图片逐部位对比</h2>
+          <p>
+            下面按
+            {comparedParts.map((p) => getPart(p)?.nameCn).join("、")}
+            逐一对比{plant1.nameCn}和{plant2.nameCn}的实拍照片，并标注两者共同和各自独有的识别特征。
+          </p>
+          {comparedParts.map((part, i) => (
+            <div key={part}>
+              <PartCompare
+                partSlug={part}
+                plantA={plant1}
+                photosA={photos1}
+                plantB={plant2}
+                photosB={photos2}
+                pairSlug={slug}
+              />
+              {i === 0 && <AdSlot />}
+            </div>
+          ))}
+        </>
+      )}
 
       <h2>一句话区别</h2>
       <p>
@@ -620,6 +707,8 @@ export default async function ComparePage({
           <p>{joinCn(plant2OnlyTags)}</p>
         </section>
       </div>
+
+      <AdSlot />
 
       <h2>新手识别顺序</h2>
       <p>{buildBeginnerGuide(plant1, plant2)}</p>
