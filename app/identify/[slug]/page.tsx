@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import { articleMeta } from "@/lib/structuredData";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import { identifyPages } from "@/data/identify";
 import { loadPlants } from "@/lib/loadPlants";
 
@@ -94,6 +96,7 @@ export default async function IdentifyPage({
     name: page.title,
     description: page.description,
     url: `https://plantatlasworld.com/identify/${page.slug}`,
+    ...articleMeta(),
   };
 
   return (
@@ -103,13 +106,9 @@ export default async function IdentifyPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <Link href="/identify">植物识别</Link>
-        <span>›</span>
-        <span>{page.title}</span>
-      </nav>
+      <Breadcrumb
+        items={[{ name: "首页", href: "/" }, { name: "植物识别", href: "/identify" }, { name: page.title }]}
+      />
 
       <h1>{page.title}</h1>
 

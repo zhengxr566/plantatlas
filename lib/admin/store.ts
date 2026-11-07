@@ -27,8 +27,14 @@ export const PHOTO_COLUMNS = [
   "license",
   "width",
   "height",
+  "updated",
 ] as const;
-const COMPARE_COLUMNS = ["plantA", "plantB", "keyPoints", "intro"] as const;
+const COMPARE_COLUMNS = ["plantA", "plantB", "keyPoints", "intro", "updated"] as const;
+
+// 本地时区的 YYYY-MM-DD（toISOString 是 UTC，日本上午会得到前一天）
+function today() {
+  return new Date().toLocaleDateString("sv-SE");
+}
 
 // 上传图片统一压缩：长边 1600px，JPEG 质量 82，去除 EXIF（包括 GPS 位置）
 const MAX_EDGE = 1600;
@@ -157,6 +163,7 @@ export async function addPhoto(buffer: Buffer, input: PhotoInput) {
     license: "",
     width: String(info.width),
     height: String(info.height),
+    updated: today(),
   };
 
   writePhotoRows([...readPhotoRows(), row]);
@@ -188,6 +195,7 @@ export function updatePhoto(file: string, input: PhotoInput) {
     season: (input.season ?? "").trim(),
     location: (input.location ?? "").trim(),
     date: (input.date ?? "").trim(),
+    updated: today(),
   });
 
   writePhotoRows(rows);
@@ -239,6 +247,7 @@ export function saveCompareNote(
             plantB: existing?.plantB ?? plantB,
             keyPoints: points.join("|"),
             intro: intro.trim(),
+            updated: today(),
           },
         ]
       : others;

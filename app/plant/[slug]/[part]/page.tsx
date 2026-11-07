@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Breadcrumb from "@/app/components/Breadcrumb";
+import { articleMeta, taxonomyCrumbs } from "@/lib/structuredData";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import AdSlot from "@/app/components/AdSlot";
 import { getPart } from "@/data/parts";
@@ -101,6 +103,7 @@ export default async function PlantPartPage({ params }: { params: Params }) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ImageGallery",
+    ...articleMeta(photos.map((p) => p.updated)),
     name: `${plant.nameCn}${part.noun}图片`,
     url,
     about: { "@type": "Thing", name: plant.nameCn, alternateName: plant.nameLatin },
@@ -114,15 +117,9 @@ export default async function PlantPartPage({ params }: { params: Params }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="breadcrumb" aria-label="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <Link href={`/family/${plant.familySlug}`}>{plant.family}</Link>
-        <span>›</span>
-        <Link href={`/plant/${plant.slug}`}>{plant.nameCn}</Link>
-        <span>›</span>
-        <span>{part.nameCn}</span>
-      </nav>
+      <Breadcrumb
+        items={[...taxonomyCrumbs(plant, "genus"), { name: plant.nameCn, href: `/plant/${plant.slug}` }, { name: part.nameCn }]}
+      />
 
       <h1>
         {plant.nameCn}

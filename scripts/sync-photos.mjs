@@ -25,6 +25,7 @@ const COLUMNS = [
   "license",
   "width",
   "height",
+  "updated",
 ];
 const IMAGE_EXT = /\.(jpe?g|png|webp|avif)$/i;
 const LARGE_FILE_BYTES = 1.5 * 1024 * 1024;
@@ -87,6 +88,7 @@ for (const full of walk(photosDir)) {
       file,
       plant: file.includes("/") ? file.split("/")[0] : "",
       part: partSlugs.has(prefix) ? prefix : "",
+      updated: new Date().toLocaleDateString("sv-SE"),
     };
     rows.push(row);
     rowsByFile.set(file, row);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import { identifyPages } from "@/data/identify";
 import { loadPlants } from "@/lib/loadPlants";
 
@@ -84,11 +85,9 @@ export default function IdentifyHubPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <span>植物识别</span>
-      </nav>
+      <Breadcrumb
+        items={[{ name: "首页", href: "/" }, { name: "植物识别" }]}
+      />
 
       <h1>植物识别大全</h1>
 

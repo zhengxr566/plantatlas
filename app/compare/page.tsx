@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import { generateComparePairs } from "@/lib/generateComparePairs";
 import { loadPlants } from "@/lib/loadPlants";
 
@@ -70,6 +71,8 @@ export default function CompareHubPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      <Breadcrumb items={[{ name: "首页", href: "/" }, { name: "植物对比" }]} />
 
       <h1>植物对比大全</h1>
 

@@ -294,6 +294,16 @@ a {
   color: #9aaa9d;
 }
 
+.breadcrumb .breadcrumb-plain {
+  margin: 0;
+  color: #607464;
+}
+
+.breadcrumb .breadcrumb-current {
+  margin: 0;
+  color: #1f2a24;
+}
+
 /* =========================
    基础信息（并排🔥）
 ========================= */

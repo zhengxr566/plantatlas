@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadPlants } from "@/lib/loadPlants";
+import { taxonomyRobots } from "@/lib/taxonomy";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Breadcrumb from "@/app/components/Breadcrumb";
+import { taxonomyCrumbs } from "@/lib/structuredData";
 
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -49,6 +52,7 @@ export async function generateMetadata({
     alternates: {
       canonical: `https://plantatlasworld.com/genus/${slug}`,
     },
+    ...taxonomyRobots(plants.filter((p) => p.genusSlug === slug).length),
   };
 }
 
@@ -74,19 +78,9 @@ export default async function GenusPage({
 
   return (
     <AtlasLayout>
-      <nav className="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <span>{first.division}</span>
-        <span>›</span>
-        <span>{first.className}</span>
-        <span>›</span>
-        <span>{first.order}</span>
-        <span>›</span>
-        <Link href={`/family/${first.familySlug}`}>{first.family}</Link>
-        <span>›</span>
-        <span>{first.genus}</span>
-      </nav>
+      <Breadcrumb
+        items={[...taxonomyCrumbs(first, "family"), { name: first.genus }]}
+      />
 
       <h1>{first.genus}植物</h1>
 

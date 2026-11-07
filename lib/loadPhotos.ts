@@ -24,6 +24,8 @@ export type PlantPhoto = {
   license: string;
   width: number;
   height: number;
+  // 最后一次添加或修改的日期（YYYY-MM-DD），用于 sitemap 的 lastmod
+  updated: string;
 };
 
 function splitList(value?: string): string[] {
@@ -61,6 +63,7 @@ export function loadPhotos(): PlantPhoto[] {
       license: row.license || DEFAULT_PHOTO_LICENSE,
       width: Number(row.width) || 1200,
       height: Number(row.height) || 900,
+      updated: row.updated || "",
     }));
 }
 

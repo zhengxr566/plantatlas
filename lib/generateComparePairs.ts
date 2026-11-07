@@ -24,6 +24,7 @@ export type PartOverlap = {
 export type CompareNote = {
   keyPoints: string[];
   intro: string;
+  updated: string;
 };
 
 export type ComparePair = {
@@ -87,6 +88,7 @@ function loadCompareNotes() {
           .map((v) => v.trim())
           .filter(Boolean),
         intro: row.intro || "",
+        updated: row.updated || "",
       },
     }));
 }

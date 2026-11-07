@@ -4,6 +4,8 @@ import { identifyPages } from "@/data/identify";
 import { loadPlants } from "@/lib/loadPlants";
 import { generateComparePairs } from "@/lib/generateComparePairs";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import JsonLd from "@/app/components/JsonLd";
+import { siteJsonLd } from "@/lib/structuredData";
 
 export const metadata: Metadata = {
   title: "植物谱系图谱｜植物识别、分类与常见植物对比",
@@ -32,6 +34,7 @@ export default function Home() {
 
   return (
     <AtlasLayout>
+      <JsonLd data={siteJsonLd()} />
       <h1>植物谱系图谱</h1>
 
       <p>

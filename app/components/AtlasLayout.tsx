@@ -1,78 +1,61 @@
-"use client";
+import AtlasShell from "./AtlasShell";
+import LineageSidebar, { type SidebarTree } from "./LineageSidebar";
+import { identifyPages } from "@/data/identify";
+import { generateComparePairs } from "@/lib/generateComparePairs";
+import { loadPhotos } from "@/lib/loadPhotos";
+import { loadPlants } from "@/lib/loadPlants";
 
-import { useState } from "react";
-import Link from "next/link";
-import Header from "./Header";
-import LineageSidebar from "./LineageSidebar";
+// 侧栏数据在服务端从 plants.csv 生成，和正文使用同一份数据
+function buildSidebarData() {
+  const plants = loadPlants();
+  const photoCount = new Map<string, number>();
+  loadPhotos().forEach((p) =>
+    photoCount.set(p.plant, (photoCount.get(p.plant) ?? 0) + 1)
+  );
 
-export default function AtlasLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [sidebarWidth, setSidebarWidth] = useState(300);
+  // 有实拍图的植物优先展示
+  const featuredPlants = [...plants]
+    .sort((a, b) => (photoCount.get(b.slug) ?? 0) - (photoCount.get(a.slug) ?? 0))
+    .slice(0, 6)
+    .map((p) => ({ slug: p.slug, nameCn: p.nameCn, family: p.family, genus: p.genus }));
 
-  function startResize(e: React.MouseEvent<HTMLDivElement>) {
-    e.preventDefault();
+  // 可收录的对比排在前面（generateComparePairs 已按此排序）
+  const featuredCompares = generateComparePairs()
+    .slice(0, 6)
+    .map((p) => ({ slug: p.slug, title: p.title }));
 
-    const startX = e.clientX;
-    const startWidth = sidebarWidth;
+  const tree: SidebarTree = {};
+  plants.forEach((plant) => {
+    const division = plant.division || "未分类类群";
+    const className = plant.className || "未分类纲";
+    const order = plant.order || "未分类目";
+    const family = plant.family || "未分类科";
+    const genus = plant.genus || "未分类属";
 
-    function onMouseMove(event: MouseEvent) {
-      const delta = event.clientX - startX;
-      const nextWidth = Math.min(Math.max(startWidth + delta, 240), 560);
-      setSidebarWidth(nextWidth);
-    }
+    tree[division] ??= {};
+    tree[division][className] ??= {};
+    tree[division][className][order] ??= {};
+    tree[division][className][order][family] ??= {};
+    tree[division][className][order][family][genus] ??= [];
+    tree[division][className][order][family][genus].push({
+      slug: plant.slug,
+      nameCn: plant.nameCn,
+      nameLatin: plant.nameLatin,
+    });
+  });
 
-    function onMouseUp() {
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    }
+  return {
+    featuredPlants,
+    featuredCompares,
+    identifyLinks: identifyPages.slice(0, 6).map((p) => ({ slug: p.slug, title: p.title })),
+    tree,
+  };
+}
 
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  }
-
+export default function AtlasLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <Header />
-
-      <main className="page">
-        <div
-          className="atlas-layout"
-          // 窄屏布局由 globals.css 的媒体查询处理，不在 JS 里判断屏幕宽度，
-          // 避免服务端渲染和客户端首次渲染不一致导致的布局跳动（CLS）
-          style={{ gridTemplateColumns: `${sidebarWidth}px minmax(0, 1fr)` }}
-        >
-          {/* 左侧 */}
-          <div className="sidebar-shell">
-            <LineageSidebar />
-
-            <div
-              className="resize-handle"
-              onMouseDown={startResize}
-              role="separator"
-              aria-orientation="vertical"
-            />
-          </div>
-
-          {/* 右侧 */}
-          <article className="document-panel">{children}</article>
-        </div>
-      </main>
-
-      <footer className="site-footer">
-        <Link href="/compare">植物对比</Link>
-        <span>·</span>
-        <Link href="/identify">植物识别</Link>
-        <span>·</span>
-        <Link href="/privacy">隐私政策与图片版权</Link>
-      </footer>
-    </>
+    <AtlasShell sidebar={<LineageSidebar {...buildSidebarData()} />}>
+      {children}
+    </AtlasShell>
   );
 }

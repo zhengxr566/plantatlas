@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Breadcrumb from "@/app/components/Breadcrumb";
+import { taxonomyCrumbs } from "@/lib/structuredData";
 import { loadPlants } from "@/lib/loadPlants";
+import { taxonomyRobots } from "@/lib/taxonomy";
 
 export async function generateMetadata({
   params,
@@ -26,6 +29,7 @@ export async function generateMetadata({
     alternates: {
       canonical: `https://plantatlasworld.com/order/${slug}`,
     },
+    ...taxonomyRobots(plants.filter((p) => p.orderSlug === slug).length),
   };
 }
 
@@ -53,17 +57,9 @@ export default async function OrderPage({
 
   return (
     <AtlasLayout>
-      <nav className="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-
-        <Link href={`/class/${first.classSlug}`} className="link">
-          {first.className}
-        </Link>
-
-        <span>›</span>
-        <span>{first.order}</span>
-      </nav>
+      <Breadcrumb
+        items={[...taxonomyCrumbs(first, "class"), { name: first.order }]}
+      />
 
       <h1>{first.order}植物</h1>
 

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import { loadPlants } from "@/lib/loadPlants";
+import { taxonomyRobots } from "@/lib/taxonomy";
 
 export async function generateMetadata({
   params,
@@ -26,6 +28,7 @@ export async function generateMetadata({
     alternates: {
       canonical: `https://plantatlasworld.com/class/${slug}`,
     },
+    ...taxonomyRobots(plants.filter((p) => p.classSlug === slug).length),
   };
 }
 
@@ -61,13 +64,9 @@ export default async function ClassPage({
 
   return (
     <AtlasLayout>
-      <nav className="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <span>{first.division}</span>
-        <span>›</span>
-        <span>{first.className}</span>
-      </nav>
+      <Breadcrumb
+        items={[{ name: "首页", href: "/" }, { name: first.division }, { name: first.className }]}
+      />
 
       <h1>{first.className}植物</h1>
 

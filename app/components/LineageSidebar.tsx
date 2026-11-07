@@ -1,109 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { plants } from "@/data/plants";
-import { identifyPages } from "@/data/identify";
+import { useState } from "react";
 
-type Plant = (typeof plants)[number];
+type PlantLink = { slug: string; nameCn: string; nameLatin: string };
 
-type ComparePair = {
-  slug: string;
-  title: string;
-};
-
-type Tree = Record<
+export type SidebarTree = Record<
   string,
-  Record<string, Record<string, Record<string, Record<string, Plant[]>>>>
+  Record<string, Record<string, Record<string, Record<string, PlantLink[]>>>>
 >;
 
-function toList(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map(String).map((v) => v.trim()).filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    return value
-      .split(/[|、,，;；]/)
-      .map((v) => v.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-}
-
-function normalizeName(value: unknown): string {
-  return String(value || "").trim();
-}
-
-function makePairKey(slugA: string, slugB: string) {
-  return [slugA, slugB].sort().join("__");
-}
-
-function generateClientComparePairs(): ComparePair[] {
-  const pairs: ComparePair[] = [];
-  const seen = new Set<string>();
-
-  const plantsByName = new Map(
-    plants.map((plant) => [normalizeName(plant.nameCn), plant])
-  );
-
-  plants.forEach((plant) => {
-    const similarList = toList((plant as any).similar);
-
-    similarList.forEach((similarName) => {
-      const target = plantsByName.get(normalizeName(similarName));
-
-      if (!target) return;
-      if (target.slug === plant.slug) return;
-
-      const pairKey = makePairKey(plant.slug, target.slug);
-      if (seen.has(pairKey)) return;
-
-      seen.add(pairKey);
-
-      pairs.push({
-        slug: `${plant.slug}-vs-${target.slug}`,
-        title: `${plant.nameCn}和${target.nameCn}的区别`,
-      });
-    });
-  });
-
-  return pairs;
-}
-
-function buildTree(): Tree {
-  const tree: Tree = {};
-
-  plants.forEach((plant) => {
-    const division = plant.division || "未分类类群";
-    const className = plant.className || "未分类纲";
-    const order = plant.order || "未分类目";
-    const family = plant.family || "未分类科";
-    const genus = plant.genus || "未分类属";
-
-    tree[division] ??= {};
-    tree[division][className] ??= {};
-    tree[division][className][order] ??= {};
-    tree[division][className][order][family] ??= {};
-    tree[division][className][order][family][genus] ??= [];
-    tree[division][className][order][family][genus].push(plant);
-  });
-
-  return tree;
-}
-
-export default function LineageSidebar() {
+export default function LineageSidebar({
+  featuredPlants,
+  featuredCompares,
+  identifyLinks,
+  tree,
+}: {
+  featuredPlants: { slug: string; nameCn: string; family: string; genus: string }[];
+  featuredCompares: { slug: string; title: string }[];
+  identifyLinks: { slug: string; title: string }[];
+  tree: SidebarTree;
+}) {
   const [openAll, setOpenAll] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const featuredPlants = useMemo(() => plants.slice(0, 6), []);
-  const featuredCompares = useMemo(
-    () => generateClientComparePairs().slice(0, 6),
-    []
-  );
-  const featuredIdentifyPages = useMemo(() => identifyPages.slice(0, 6), []);
-  const tree = useMemo(() => buildTree(), []);
 
   return (
     <>
@@ -156,7 +75,7 @@ export default function LineageSidebar() {
           </div>
         )}
 
-        {featuredIdentifyPages.length > 0 && (
+        {identifyLinks.length > 0 && (
           <div className="sidebar-section">
             <h3>
               <Link href="/identify" className="sidebar-title-link">
@@ -165,7 +84,7 @@ export default function LineageSidebar() {
             </h3>
 
             <ul>
-              {featuredIdentifyPages.map((page) => (
+              {identifyLinks.map((page) => (
                 <li key={page.slug}>
                   <Link href={`/identify/${page.slug}`}>
                     {page.title}

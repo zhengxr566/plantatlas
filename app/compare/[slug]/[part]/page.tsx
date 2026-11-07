@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import { articleMeta } from "@/lib/structuredData";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import PartCompare, { describePartDifference } from "@/app/components/PartCompare";
 import AdSlot from "@/app/components/AdSlot";
 import { getPart } from "@/data/parts";
@@ -99,6 +101,9 @@ export default async function PartComparePage({ params }: { params: Params }) {
     headline: `${plantA.nameCn}${part.noun}和${plantB.nameCn}${part.noun}的区别`,
     about: [plantA.nameCn, plantB.nameCn],
     mainEntityOfPage: url,
+    ...articleMeta(
+      [...photosA, ...photosB].filter((p) => p.part === part.slug).map((p) => p.updated)
+    ),
     image: [
       ...photosA
         .filter((p) => p.part === part.slug)
@@ -116,17 +121,9 @@ export default async function PartComparePage({ params }: { params: Params }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="breadcrumb" aria-label="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <Link href="/compare">植物对比</Link>
-        <span>›</span>
-        <Link href={`/compare/${pair.slug}`}>
-          {plantA.nameCn} vs {plantB.nameCn}
-        </Link>
-        <span>›</span>
-        <span>{part.nameCn}</span>
-      </nav>
+      <Breadcrumb
+        items={[{ name: "首页", href: "/" }, { name: "植物对比", href: "/compare" }, { name: `${plantA.nameCn} vs ${plantB.nameCn}`, href: `/compare/${pair.slug}` }, { name: part.nameCn }]}
+      />
 
       <h1>
         {plantA.nameCn}

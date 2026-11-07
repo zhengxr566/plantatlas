@@ -3,6 +3,8 @@ import { loadPlants } from "@/lib/loadPlants";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import { articleMeta } from "@/lib/structuredData";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import PartCompare from "@/app/components/PartCompare";
 import PartPlaceholder from "@/app/components/PartPlaceholder";
 import AdSlot from "@/app/components/AdSlot";
@@ -338,6 +340,11 @@ export default async function ComparePage({
     description: buildMetaDescription(plant1, plant2),
     about: [plant1.nameCn, plant2.nameCn],
     mainEntityOfPage: pageUrl,
+    ...articleMeta([
+      ...photos1.filter((p) => comparedParts.includes(p.part)).map((p) => p.updated),
+      ...photos2.filter((p) => comparedParts.includes(p.part)).map((p) => p.updated),
+      pair?.note?.updated ?? "",
+    ]),
     image: [
       ...photos1
         .filter((p) => comparedParts.includes(p.part) || p === hero1)
@@ -355,21 +362,9 @@ export default async function ComparePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="breadcrumb" aria-label="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <Link href="/compare">植物对比</Link>
-        <span>›</span>
-        <span>
-          <Link href={`/plant/${plant1.slug}`} className="link">
-            {plant1.nameCn}
-          </Link>
-          {" vs "}
-          <Link href={`/plant/${plant2.slug}`} className="link">
-            {plant2.nameCn}
-          </Link>
-        </span>
-      </nav>
+      <Breadcrumb
+        items={[{ name: "首页", href: "/" }, { name: "植物对比", href: "/compare" }, { name: `${plant1.nameCn} vs ${plant2.nameCn}` }]}
+      />
 
       <h1>
         {plant1.nameCn} vs {plant2.nameCn}：怎么快速区分

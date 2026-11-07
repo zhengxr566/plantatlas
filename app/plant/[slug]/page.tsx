@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadPlants } from "@/lib/loadPlants";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import Breadcrumb from "@/app/components/Breadcrumb";
+import { articleMeta, taxonomyCrumbs } from "@/lib/structuredData";
 import Image from "next/image";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import PartPlaceholder from "@/app/components/PartPlaceholder";
@@ -316,6 +318,7 @@ export default async function PlantPage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
+    ...articleMeta(photos.map((p) => p.updated)),
     headline: `${plant.nameCn}（${plant.nameLatin}）`,
     description: `${plant.nameCn}的植物识别、分类谱系和形态特征介绍。`,
     url: `https://plantatlasworld.com/plant/${plant.slug}`,
@@ -340,27 +343,9 @@ export default async function PlantPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="breadcrumb">
-        <Link href="/">首页</Link>
-        <span>›</span>
-        <span>{plant.division}</span>
-        <span>›</span>
-        <Link href={`/class/${plant.classSlug}`} className="lineage-node link">
-          {plant.className}
-        </Link>
-        <span>›</span>
-        <Link href={`/order/${plant.orderSlug}`} className="lineage-node link">
-          {plant.order}
-        </Link>
-        <span>›</span>
-        <Link href={`/family/${plant.familySlug}`} className="lineage-node link">
-          {plant.family}
-        </Link>
-        <span>›</span>
-        <Link href={`/genus/${plant.genusSlug}`} className="lineage-node link">
-          {plant.genus}
-        </Link>
-      </nav>
+      <Breadcrumb
+        items={[...taxonomyCrumbs(plant, "genus"), { name: plant.nameCn }]}
+      />
 
       <h1>{plant.nameCn}</h1>
       <p className="latin">{plant.nameLatin}</p>

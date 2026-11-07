@@ -60,6 +60,7 @@ npm run build
    | `caption` | 图片说明，会用作 alt 文本（对 Google 图片最重要） | `银杏短枝上簇生的扇形叶` |
    | `season` / `location` / `date` | 拍摄季节、地点、日期（可选） | `秋季` / `北京` / `2026-10-12` |
    | `author` / `license` | 留空默认 `Plant Atlas World` / 保留所有权利 | |
+   | `updated` | 最后添加或修改的日期，后台和 `npm run photos` 会自动填写，用于 sitemap 的更新日期 | `2026-11-08` |
 
    再运行一次 `npm run photos`，它会提示没有标签或不在 `tags.md` 里的标签。新标签请先加进 `tags.md`，
    **同一个特征只用一种写法**，否则两张图不会被识别为相似。
@@ -80,6 +81,7 @@ ginkgo-biloba,liriodendron-chinense,看叶尖：银杏叶顶端波状或有缺�
 - `plantA` / `plantB`：plants.csv 中的 slug，页面 URL 为 `/compare/plantA-vs-plantB`（已有的对比沿用原 URL）
 - `keyPoints`：核心区别，`|` 分隔，显示在对比页顶部的「核心区别」框中
 - `intro`：可选，替换模板生成的开头段落
+- `updated`：最后修改日期（后台保存时自动填写）
 - 这里写的对比即使不在 `similar` 列中也会生成页面
 
 ## 收录规则（noindex）
@@ -90,6 +92,8 @@ ginkgo-biloba,liriodendron-chinense,看叶尖：银杏叶顶端波状或有缺�
 2. 在 compare.csv 中写了 `keyPoints` 或 `intro`
 
 其他对比页仍可访问、内部链接仍可跟踪，但带有 `noindex`，等补充内容后会自动变为可收录。
+
+纲、目、科、属页面同理：只包含 1 种植物时设为 `noindex` 且不进 sitemap（内容和植物页几乎重复），收录到第 2 种植物后自动恢复。阈值见 `lib/taxonomy.ts` 的 `MIN_PLANTS_TO_INDEX`。
 
 ## 页面是怎么自动生成的
 
