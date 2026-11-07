@@ -1,10 +1,10 @@
 import Image from "next/image";
 import { loadPlants } from "@/lib/loadPlants";
-import { getPlantImage } from "@/lib/getPlantImage";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import PartCompare from "@/app/components/PartCompare";
+import PartPlaceholder from "@/app/components/PartPlaceholder";
 import AdSlot from "@/app/components/AdSlot";
 import type { Metadata } from "next";
 import {
@@ -114,7 +114,7 @@ function getCompareTopic(plant1: PlantLike, plant2: PlantLike) {
   return "两种常见植物";
 }
 
-// 优先使用自己拍摄的树形/叶片照片作为首图，没有时退回维基百科图片
+// 优先使用树形照片作为首图，其次叶片，没有实拍图时显示占位卡片
 function pickHeroPhoto(photos: PlantPhoto[]) {
   return (
     photos.find((p) => p.part === "habit") ??
@@ -313,8 +313,6 @@ export default async function ComparePage({
   const hero2 = pickHeroPhoto(photos2);
   const comparedParts = (pair?.partOverlaps ?? []).map((o) => o.part);
 
-  const image1 = hero1?.src ?? (await getPlantImage(plant1.nameLatin));
-  const image2 = hero2?.src ?? (await getPlantImage(plant2.nameLatin));
   const pageUrl = `https://plantatlasworld.com/compare/${slug}`;
 
   const sharedTags = getSharedTags(plant1, plant2);
@@ -377,61 +375,55 @@ export default async function ComparePage({
         {plant1.nameCn} vs {plant2.nameCn}：怎么快速区分
       </h1>
 
-      {(image1 || image2) && (
-        <div className="compare-hero">
-          <div className="compare-card">
-            {image1 && (
-              <Image
-                src={image1}
-                alt={
-                  hero1
-                    ? buildPhotoAlt(hero1, plant1)
-                    : `${plant1.nameCn}（${plant1.nameLatin || ""}）植物图片`
-                }
-                width={hero1?.width ?? 800}
-                height={hero1?.height ?? 600}
-                sizes="(max-width: 768px) 100vw, 45vw"
-                preload
-              />
-            )}
+      <div className="compare-hero">
+        <div className="compare-card">
+          {hero1 ? (
+            <Image
+              src={hero1.src}
+              alt={buildPhotoAlt(hero1, plant1)}
+              width={hero1.width}
+              height={hero1.height}
+              sizes="(max-width: 768px) 100vw, 45vw"
+              preload
+            />
+          ) : (
+            <PartPlaceholder partSlug="habit" plantName={plant1.nameCn} />
+          )}
 
-            <h2>
-              <Link href={`/plant/${plant1.slug}`} className="link">
-                {plant1.nameCn}
-              </Link>
-            </h2>
+          <h2>
+            <Link href={`/plant/${plant1.slug}`} className="link">
+              {plant1.nameCn}
+            </Link>
+          </h2>
 
-            {plant1.nameLatin && <p>{plant1.nameLatin}</p>}
-          </div>
-
-          <div className="compare-vs">VS</div>
-
-          <div className="compare-card">
-            {image2 && (
-              <Image
-                src={image2}
-                alt={
-                  hero2
-                    ? buildPhotoAlt(hero2, plant2)
-                    : `${plant2.nameCn}（${plant2.nameLatin || ""}）植物图片`
-                }
-                width={hero2?.width ?? 800}
-                height={hero2?.height ?? 600}
-                sizes="(max-width: 768px) 100vw, 45vw"
-                preload
-              />
-            )}
-
-            <h2>
-              <Link href={`/plant/${plant2.slug}`} className="link">
-                {plant2.nameCn}
-              </Link>
-            </h2>
-
-            {plant2.nameLatin && <p>{plant2.nameLatin}</p>}
-          </div>
+          {plant1.nameLatin && <p>{plant1.nameLatin}</p>}
         </div>
-      )}
+
+        <div className="compare-vs">VS</div>
+
+        <div className="compare-card">
+          {hero2 ? (
+            <Image
+              src={hero2.src}
+              alt={buildPhotoAlt(hero2, plant2)}
+              width={hero2.width}
+              height={hero2.height}
+              sizes="(max-width: 768px) 100vw, 45vw"
+              preload
+            />
+          ) : (
+            <PartPlaceholder partSlug="habit" plantName={plant2.nameCn} />
+          )}
+
+          <h2>
+            <Link href={`/plant/${plant2.slug}`} className="link">
+              {plant2.nameCn}
+            </Link>
+          </h2>
+
+          {plant2.nameLatin && <p>{plant2.nameLatin}</p>}
+        </div>
+      </div>
 
       {pair?.note && pair.note.keyPoints.length > 0 && (
         <section className="key-points">

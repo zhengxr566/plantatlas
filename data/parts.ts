@@ -75,3 +75,12 @@ export const plantParts: PlantPart[] = [
 export function getPart(slug: string) {
   return plantParts.find((part) => part.slug === slug);
 }
+
+// 每种植物默认展示的部位：没有实拍图时显示占位卡片，提示还缺哪些照片
+export function getCorePartSlugs(division?: string, className?: string) {
+  // 银杏没有球果，观察的是种子（白果）
+  if (className === "银杏纲") return ["habit", "leaf", "seed", "bark"];
+  return division === "裸子植物"
+    ? ["habit", "leaf", "cone", "bark"]
+    : ["habit", "leaf", "flower", "fruit", "bark"];
+}

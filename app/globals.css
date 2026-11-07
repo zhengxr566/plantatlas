@@ -643,3 +643,61 @@ a {
   margin-bottom: 0;
   padding-left: 20px;
 }
+
+/* =========================
+   Photo Placeholder
+========================= */
+
+.photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 16px;
+  border: 1px dashed #c4d8c2;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      #f6faf5,
+      #f6faf5 10px,
+      #f0f6ee 10px,
+      #f0f6ee 20px
+    );
+  color: #6b8a6d;
+  text-align: center;
+}
+
+.photo-placeholder svg {
+  width: 56px;
+  height: 56px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+
+.photo-placeholder-autumn {
+  color: #b7793a;
+}
+
+.photo-placeholder-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3f5a42;
+}
+
+.photo-placeholder-note {
+  font-size: 0.8rem;
+  color: #8a9a8c;
+}
+
+.compare-card .photo-placeholder {
+  aspect-ratio: auto;
+  height: 260px;
+  margin-bottom: 0;
+}

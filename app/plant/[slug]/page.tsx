@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { loadPlants } from "@/lib/loadPlants";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Image from "next/image";
-import { getPlantImage } from "@/lib/getPlantImage";
 import PhotoFigure from "@/app/components/PhotoFigure";
+import PartPlaceholder from "@/app/components/PartPlaceholder";
+import { getCorePartSlugs, plantParts } from "@/data/parts";
 import AdSlot from "@/app/components/AdSlot";
 import {
   buildImageObjectJsonLd,
   buildPhotoAlt,
-  getPhotoParts,
   loadPhotos,
 } from "@/lib/loadPhotos";
 import {
@@ -285,12 +285,16 @@ export default async function PlantPage({
   const plant = plants.find((p) => p.slug === slug);
   if (!plant) notFound();
   const photos = loadPhotos().filter((p) => p.plant === plant.slug);
-  const photoParts = getPhotoParts(photos);
+  // 核心部位始终展示（没有图时显示占位），其他部位有图才展示
+  const coreParts = getCorePartSlugs(plant.division, plant.className);
+  const shownParts = plantParts.filter(
+    (part) =>
+      coreParts.includes(part.slug) || photos.some((p) => p.part === part.slug)
+  );
   const heroPhoto =
     photos.find((p) => p.part === "habit") ??
     photos.find((p) => p.part === "leaf") ??
     photos[0];
-  const plantImage = heroPhoto?.src ?? (await getPlantImage(plant.nameLatin));
   const sameFamilyPlants = plants.filter(
     (p) => p.familySlug === plant.familySlug && p.slug !== plant.slug
   );
@@ -360,49 +364,49 @@ export default async function PlantPage({
 
       <h1>{plant.nameCn}</h1>
       <p className="latin">{plant.nameLatin}</p>
-      {plantImage && (
+      {heroPhoto && (
         <div className="plant-hero-image">
           <Image
-            src={plantImage}
-            alt={
-              heroPhoto
-                ? buildPhotoAlt(heroPhoto, plant)
-                : `${plant.nameCn}（${plant.nameLatin}）植物图片`
-            }
-            width={heroPhoto?.width ?? 1200}
-            height={heroPhoto?.height ?? 800}
+            src={heroPhoto.src}
+            alt={buildPhotoAlt(heroPhoto, plant)}
+            width={heroPhoto.width}
+            height={heroPhoto.height}
             sizes="(max-width: 980px) 100vw, 70vw"
             preload
           />
         </div>
       )}
 
-      {photoParts.length > 0 && (
-        <>
-          <h2>{plant.nameCn}实拍图片</h2>
-          <div className="photo-gallery">
-            {photoParts.map((part) => (
-              <div key={part.slug}>
-                <PhotoFigure
-                  photo={photos.find((p) => p.part === part.slug)!}
-                  plant={plant}
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  showTags={false}
-                />
-                <Link
-                  href={`/plant/${plant.slug}/${part.slug}`}
-                  className="link"
-                >
-                  {plant.nameCn}
-                  {part.noun}图片（
-                  {photos.filter((p) => p.part === part.slug).length}张）›
-                </Link>
-              </div>
-            ))}
-          </div>
-          <AdSlot />
-        </>
-      )}
+      <h2>{plant.nameCn}各部位图片</h2>
+      <div className="photo-gallery">
+        {shownParts.map((part) => {
+          const partPhotos = photos.filter((p) => p.part === part.slug);
+          return (
+            <div key={part.slug}>
+              {partPhotos.length > 0 ? (
+                <>
+                  <PhotoFigure
+                    photo={partPhotos[0]}
+                    plant={plant}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    showTags={false}
+                  />
+                  <Link
+                    href={`/plant/${plant.slug}/${part.slug}`}
+                    className="link"
+                  >
+                    {plant.nameCn}
+                    {part.noun}图片（{partPhotos.length}张）›
+                  </Link>
+                </>
+              ) : (
+                <PartPlaceholder partSlug={part.slug} plantName={plant.nameCn} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {photos.length > 0 && <AdSlot />}
       <h2>基础信息</h2>
       <div className="info-inline">
         <div className="info-item">
