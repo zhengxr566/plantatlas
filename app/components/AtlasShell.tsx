@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Header from "./Header";
+import { isAboutReady } from "@/data/about";
 
 // 页面外框（客户端）：负责侧栏宽度拖拽。侧栏内容由服务端的 AtlasLayout 传入。
 export default function AtlasShell({
@@ -76,6 +77,12 @@ export default function AtlasShell({
         <Link href="/identify">植物识别</Link>
         <span>·</span>
         <Link href="/privacy">隐私政策与图片版权</Link>
+        {isAboutReady() && (
+          <>
+            <span>·</span>
+            <Link href="/about">关于本站</Link>
+          </>
+        )}
       </footer>
     </>
   );

@@ -10,6 +10,7 @@ import {
   type PlantPhoto,
 } from "@/lib/loadPhotos";
 import { isTaxonomyIndexable } from "@/lib/taxonomy";
+import { isAboutReady } from "@/data/about";
 
 // lastmod 只使用真实日期（图片或手写对比的 updated 列）；没有真实日期时不写，
 // 避免每次部署都把所有页面标成“刚更新”，导致 Google 忽略整个 sitemap 的 lastmod
@@ -124,5 +125,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ),
 
     { url: `${baseUrl}/privacy`, priority: 0.2 },
+    // data/about.ts 填写完成后才提交“关于本站”
+    ...(isAboutReady() ? [{ url: `${baseUrl}/about`, priority: 0.4 }] : []),
   ];
 }
