@@ -1057,7 +1057,7 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .lineage-tree-search {
@@ -1069,29 +1069,43 @@ a {
 
 .lineage-tree-search input {
   flex: 1;
-  max-width: 260px;
-  padding: 6px 10px;
-  border: 1px solid #dce8da;
-  border-radius: 8px;
+  max-width: 300px;
+  padding: 7px 12px;
+  border: 1px solid #d3e2d0;
+  border-radius: 999px;
+  background: #fff;
   font: inherit;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.lineage-tree-search input:focus {
+  outline: none;
+  border-color: #4b7a50;
+  box-shadow: 0 0 0 3px rgba(75, 122, 80, 0.15);
 }
 
 .lineage-tree-search button,
 .lineage-tree-buttons button {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border: 1px solid #cfe0cf;
-  border-radius: 8px;
+  border-radius: 999px;
   background: #fff;
   color: #2f4a33;
   font: inherit;
   font-size: 0.85rem;
   cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
 
 .lineage-tree-search button {
   border-color: #2f6b3a;
   background: #2f6b3a;
   color: #fff;
+}
+
+.lineage-tree-search button:hover {
+  background: #255a2f;
 }
 
 .lineage-tree-buttons {
@@ -1102,6 +1116,7 @@ a {
 
 .lineage-tree-buttons button:hover {
   border-color: #6b8a6d;
+  background: #f4f9f2;
 }
 
 .lineage-tree-error {
@@ -1110,13 +1125,15 @@ a {
 }
 
 .lineage-tree-canvas {
-  height: min(72vh, 680px);
+  position: relative;
+  height: min(74vh, 700px);
   overflow: hidden;
   border: 1px solid #dce8da;
-  border-radius: 12px;
+  border-radius: 14px;
   background:
-    radial-gradient(circle, #e3ece1 1px, transparent 1px) 0 0 / 22px 22px,
-    #fbfdfb;
+    radial-gradient(circle, #e1ebdf 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(180deg, #fbfdfb, #f5f9f4);
+  box-shadow: inset 0 1px 3px rgba(31, 58, 36, 0.05);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -1126,148 +1143,375 @@ a {
   cursor: grabbing;
 }
 
-.lineage-tree-compact .lineage-tree-canvas {
-  height: 440px;
-}
-
-.lineage-tree-link {
-  fill: none;
-  stroke: #c3d8bf;
-  stroke-width: 1.5;
-}
-
-.lineage-tree-node,
-.lineage-tree-plant {
-  cursor: pointer;
-}
-
-.lineage-tree-node:focus-visible {
+.lineage-tree-canvas:focus {
   outline: none;
 }
 
-.lineage-tree-node:focus-visible circle {
-  stroke: #d97706;
+.lineage-tree-compact .lineage-tree-canvas {
+  height: 460px;
 }
 
-.lineage-node-open {
-  fill: #fff;
-  stroke: #6b8a6d;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
+.lineage-tree.is-fullscreen {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 16px;
+  background: #fff;
 }
 
-.lineage-node-closed {
-  fill: #8fb58a;
-  stroke: #fff;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
+.lineage-tree.is-fullscreen .lineage-tree-canvas {
+  flex: 1;
+  height: auto;
 }
 
-.lineage-node-photo {
-  fill: #2f6b3a;
-  stroke: #fff;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
+/* floating overlays on the canvas */
+.lineage-tree-crumbs,
+.lineage-tree-zoom {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  border: 1px solid #dce8da;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(31, 58, 36, 0.08);
+  cursor: default;
 }
 
-.lineage-dot-empty {
-  fill: #fff;
-  stroke: #97c459;
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
+.lineage-tree-crumbs {
+  top: 10px;
+  left: 10px;
+  right: 64px;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: fit-content;
+  max-width: calc(100% - 74px);
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 0.82rem;
 }
 
-.lineage-dot-photo {
-  fill: #2f6b3a;
-  stroke: #fff;
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-
-.lineage-tree-node:hover circle,
-.lineage-tree-plant:hover circle {
-  stroke: #d97706;
-}
-
-.lineage-tree-label {
-  fill: #1f2a24;
-  paint-order: stroke;
-  stroke: #fbfdfb;
-  stroke-width: 4px;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.lineage-tree-label-group {
-  font-weight: 600;
-}
-
-.lineage-tree-count {
-  fill: #7a8a7c;
-  font-weight: 400;
-}
-
-.lineage-card {
+.lineage-tree-crumbs button {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #4b6a4f;
+  font: inherit;
   cursor: pointer;
 }
 
+.lineage-tree-crumbs button:hover {
+  background: #eef5ec;
+  color: #1f3a24;
+}
+
+.lineage-tree-crumbs button.is-current {
+  color: #1f3a24;
+  font-weight: 700;
+}
+
+.lineage-tree-crumb-sep {
+  color: #a3b5a5;
+}
+
+.lineage-tree-crumb-link {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #2f6b3a;
+  color: #fff;
+  font-size: 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.lineage-tree-crumb-link:hover {
+  background: #255a2f;
+  color: #fff;
+}
+
+.lineage-tree-zoom {
+  top: 10px;
+  right: 10px;
+  flex-direction: column;
+  padding: 3px;
+  border-radius: 12px;
+}
+
+.lineage-tree-zoom button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: #2f4a33;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lineage-tree-zoom button:hover {
+  background: #eef5ec;
+}
+
+.lineage-tree-zoom-level {
+  padding: 2px 0;
+  color: #6b7a6e;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* connectors */
+.lineage-tree-link {
+  fill: none;
+  stroke: #a9c6a4;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispEdges;
+  transition: stroke 0.2s;
+}
+
+.has-focus .lineage-tree-link {
+  stroke: #d6e3d3;
+}
+
+.has-focus .lineage-tree-link.is-active {
+  stroke: #4b7a50;
+  stroke-width: 2;
+}
+
+/* nodes */
+@keyframes lineage-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.lineage-box,
+.lineage-row,
+.lineage-card {
+  cursor: pointer;
+  animation: lineage-in 0.35s ease-out;
+  transition: opacity 0.25s;
+}
+
+.lineage-box.is-dim,
+.lineage-row.is-dim,
+.lineage-card.is-dim {
+  opacity: 0.38;
+}
+
+.lineage-box.is-dim:hover,
+.lineage-row.is-dim:hover,
+.lineage-card.is-dim:hover {
+  opacity: 1;
+}
+
+/* upper levels: boxes */
+.lineage-box rect {
+  fill: #f4f9f2;
+  stroke: #9dc098;
+  stroke-width: 1.2;
+  filter: url(#lineage-shadow);
+  transition: fill 0.15s, stroke 0.15s;
+}
+
+.lineage-box.lv-division rect {
+  fill: #e4f0e1;
+  stroke: #79a875;
+}
+
+.lineage-box.is-open rect {
+  fill: #fff;
+  stroke: #4b7a50;
+}
+
+.lineage-box.is-root rect {
+  fill: url(#lineage-root-fill);
+  stroke: #2a5f34;
+}
+
+.lineage-box text {
+  fill: #1f3a24;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lineage-box.is-root text,
+.lineage-box.is-root .lineage-count {
+  fill: #fff;
+}
+
+/* lower levels: indented list rows */
+.lineage-row rect {
+  fill: transparent;
+  stroke: none;
+  transition: fill 0.15s;
+}
+
+.lineage-row text {
+  fill: #2f4a33;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lineage-row.lv-order text {
+  fill: #1f3a24;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.lineage-row.lv-genus text {
+  fill: #3f5a42;
+  font-weight: 500;
+}
+
+.lineage-row.is-open rect {
+  fill: #eef5ec;
+}
+
+.lineage-caret {
+  fill: #7a9a7d;
+  font-size: 11px;
+}
+
+.lineage-count {
+  fill: #8a9a8c;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.lineage-photo-dot {
+  fill: #2f9e44;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.lineage-box:hover rect,
+.lineage-row:hover rect {
+  stroke: #d97706;
+  stroke-width: 2;
+}
+
+.lineage-row:hover rect {
+  fill: #fdf3e2;
+}
+
+.lineage-box.is-focus rect,
+.lineage-row.is-focus rect {
+  stroke: #d97706;
+  stroke-width: 2;
+}
+
+.lineage-row.is-focus rect {
+  fill: #fff7ea;
+}
+
+.lineage-box:focus-visible,
+.lineage-row:focus-visible {
+  outline: none;
+}
+
+.lineage-box:focus-visible rect,
+.lineage-row:focus-visible rect {
+  stroke: #d97706;
+  stroke-width: 2.5;
+}
+
+/* plant name cards */
 .lineage-card-bg {
   fill: #fff;
   stroke: #d5e5d2;
   stroke-width: 1;
+  filter: url(#lineage-shadow);
+  transition: stroke 0.15s;
 }
 
 .lineage-card:hover .lineage-card-bg {
-  stroke: #6b8a6d;
-  stroke-width: 2;
+  stroke: #4b7a50;
+  stroke-width: 1.8;
 }
 
 .lineage-card-on .lineage-card-bg {
+  fill: #fffaf0;
   stroke: #d97706;
-  stroke-width: 3;
+  stroke-width: 2.5;
 }
 
 .lineage-card-empty {
   fill: #eef5ec;
 }
 
-.lineage-card-empty-text {
-  fill: #8a9a8c;
-  font-size: 11px;
-  text-anchor: middle;
+.lineage-card-initial {
+  fill: #9dbb99;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .lineage-card-name {
   fill: #1f2a24;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .lineage-card-latin {
   fill: #6b7a6e;
-  font-size: 11px;
+  font-size: 10.5px;
   font-style: italic;
-}
-
-.lineage-card-meta {
-  fill: #2f6b3a;
-  font-size: 12px;
 }
 
 .lineage-card-text {
   fill: #3f5a42;
-  font-size: 12px;
+  font-size: 11px;
 }
 
-.lineage-card-tags {
-  fill: #8a9a8c;
-  font-size: 10.5px;
+.lineage-card-arrow {
+  fill: #b5c7b6;
+  font-size: 18px;
+  transition: fill 0.15s;
+}
+
+.lineage-card:hover .lineage-card-arrow {
+  fill: #2f6b3a;
 }
 
 .lineage-tree-hint {
   margin-top: 8px;
   color: #607464;
   font-size: 0.82rem;
+}
+
+.lineage-photo-legend {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2f9e44;
+  vertical-align: 1px;
+}
+
+@media (max-width: 640px) {
+  .lineage-tree-canvas {
+    height: 70vh;
+  }
+
+  .lineage-tree-crumbs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    font-size: 0.76rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lineage-box,
+  .lineage-row,
+  .lineage-card {
+    animation: none;
+  }
 }
 
 .lineage-directory details {
