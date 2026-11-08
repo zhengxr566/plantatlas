@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import CropDialog, { type CropRect } from "./CropDialog";
 import PhotoForm from "./PhotoForm";
 import { api, type AdminData, type PhotoMeta, type PhotoRow } from "./types";
 
@@ -12,6 +13,9 @@ type QueueItem = {
   status: "pending" | "uploading" | "done" | "error";
   error?: string;
   saved?: PhotoRow;
+  // 裁剪区域（原图像素）和裁剪后的小预览
+  crop?: CropRect | null;
+  cropPreview?: string;
 };
 
 const EMPTY_META: PhotoMeta = {
@@ -29,15 +33,18 @@ export default function UploadTab({
   preset,
   onUploaded,
   onAddTag,
+  onCreatePlant,
 }: {
   data: AdminData;
   preset: { plant: string; part: string } | null;
   onUploaded: () => void;
   onAddTag: (tag: string) => Promise<void>;
+  onCreatePlant?: (name: string) => Promise<string | null>;
 }) {
   const [defaults, setDefaults] = useState<PhotoMeta>(EMPTY_META);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [cropping, setCropping] = useState<QueueItem | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 从“拍摄进度”点击格子跳转过来时，预填植物和部位
@@ -93,6 +100,7 @@ export default function UploadTab({
       const form = new FormData();
       form.append("file", item.file);
       form.append("meta", JSON.stringify(item.meta));
+      if (item.crop) form.append("crop", JSON.stringify(item.crop));
       const result = await api<{ row: PhotoRow }>("/api/admin/photos", {
         method: "POST",
         body: form,
@@ -118,7 +126,8 @@ export default function UploadTab({
       <section className="panel">
         <h2>默认信息</h2>
         <p className="muted">新加入的图片会使用这里的植物、部位、季节、地点和日期，之后每张图还可以单独修改。日期留空时会自动读取照片的拍摄日期。</p>
-        <PhotoForm meta={defaults} onChange={setDefaults} data={data} onAddTag={onAddTag} compact />
+        <PhotoForm meta={defaults} onChange={setDefaults} data={data} onAddTag={onAddTag}
+            onCreatePlant={onCreatePlant} compact />
       </section>
 
       <div
@@ -175,7 +184,7 @@ export default function UploadTab({
         {queue.map((item) => (
           <article key={item.id} className={`queue-item queue-${item.status}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.preview} alt="" className="queue-preview" />
+            <img src={item.cropPreview ?? item.preview} alt="" className="queue-preview" />
             <div className="queue-body">
               {item.status === "done" && item.saved ? (
                 <div className="queue-saved">
@@ -195,6 +204,7 @@ export default function UploadTab({
                     onChange={(meta) => updateItem(item.id, { meta })}
                     data={data}
                     onAddTag={onAddTag}
+            onCreatePlant={onCreatePlant}
                   />
                   {item.error && <p className="error">{item.error}</p>}
                   <div className="queue-item-actions">
@@ -206,6 +216,18 @@ export default function UploadTab({
                     >
                       {item.status === "uploading" ? "上传中…" : "上传"}
                     </button>
+                    <button type="button" className="btn" onClick={() => setCropping(item)}>
+                      {item.crop ? "重新裁剪" : "裁剪"}
+                    </button>
+                    {item.crop && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={() => updateItem(item.id, { crop: null, cropPreview: undefined })}
+                      >
+                        取消裁剪
+                      </button>
+                    )}
                     {item.meta.tags.length > 0 && queue.length > 1 && (
                       <button type="button" className="btn" onClick={() => applyTagsToOthers(item)}>
                         标签应用到其他待上传图片
@@ -221,6 +243,18 @@ export default function UploadTab({
           </article>
         ))}
       </div>
+
+      {cropping && (
+        <CropDialog
+          src={cropping.preview}
+          initial={cropping.crop}
+          onCancel={() => setCropping(null)}
+          onApply={(crop, cropPreview) => {
+            updateItem(cropping.id, { crop, cropPreview });
+            setCropping(null);
+          }}
+        />
+      )}
     </div>
   );
 }

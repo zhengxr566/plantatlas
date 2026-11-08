@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PlantPicker from "./PlantPicker";
 import TagPicker from "./TagPicker";
+import TaxonomyFields, { emptyPlantRow as emptyRow, slugify } from "./TaxonomyFields";
 import { api, splitTags, type AdminData } from "./types";
 
 type Row = Record<string, string>;
@@ -15,29 +16,6 @@ const TEXT_FIELDS: { key: string; label: string; rows?: number }[] = [
   { key: "bark", label: "树皮", rows: 2 },
   { key: "environment", label: "生长环境", rows: 2 },
 ];
-
-const TAXONOMY_FIELDS: { key: string; label: string }[] = [
-  { key: "className", label: "纲" },
-  { key: "classSlug", label: "纲标识" },
-  { key: "order", label: "目" },
-  { key: "orderSlug", label: "目标识" },
-  { key: "family", label: "科" },
-  { key: "familySlug", label: "科标识" },
-  { key: "genus", label: "属" },
-  { key: "genusSlug", label: "属标识" },
-];
-
-// 学名 → 网址标识，例如 "Pinus bungeana" → "pinus-bungeana"
-function slugify(latin: string) {
-  return latin
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function emptyRow(columns: string[]): Row {
-  return Object.fromEntries(columns.map((c) => [c, c === "kingdom" ? "植物界" : ""]));
-}
 
 export default function PlantsTab({
   data,
@@ -83,18 +61,6 @@ export default function PlantsTab({
         r.slug.includes(q)
     );
   }, [rows, query]);
-
-  // 已有的属 / 科，用于快速填写分类
-  const genera = useMemo(() => {
-    const map = new Map<string, Row>();
-    rows.forEach((r) => map.set(r.genusSlug, r));
-    return [...map.values()].sort((a, b) => a.family.localeCompare(b.family, "zh"));
-  }, [rows]);
-  const families = useMemo(() => {
-    const map = new Map<string, Row>();
-    rows.forEach((r) => map.set(r.familySlug, r));
-    return [...map.values()].sort((a, b) => a.family.localeCompare(b.family, "zh"));
-  }, [rows]);
 
   // “相似植物”里写了、但 plants.csv 还没有的植物：值得补充的清单
   const missing = useMemo(() => {
@@ -145,21 +111,6 @@ export default function PlantsTab({
     if (key === "slug") autoSlug = false;
     if (key === "nameLatin" && editing.isNew && autoSlug) row.slug = slugify(value);
     setEditing({ ...editing, row, autoSlug });
-    setDirty(true);
-  }
-
-  // 选择已有的属或科：自动带出上级分类
-  function fillTaxonomy(source: Row, depth: "genus" | "family") {
-    if (!editing) return;
-    const keys = ["division", "className", "classSlug", "order", "orderSlug", "family", "familySlug"];
-    if (depth === "genus") keys.push("genus", "genusSlug");
-    const row = { ...editing.row };
-    keys.forEach((k) => (row[k] = source[k]));
-    if (depth === "family") {
-      row.genus = "";
-      row.genusSlug = "";
-    }
-    setEditing({ ...editing, row });
     setDirty(true);
   }
 
@@ -277,59 +228,14 @@ export default function PlantsTab({
             {row.slug && <p className="muted">页面地址：/plant/{row.slug}</p>}
 
             <h3>分类</h3>
-            <div className="field-row">
-              <label className="field">
-                <span>选择已有的属（自动填写上级分类）</span>
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const g = genera.find((x) => x.genusSlug === e.target.value);
-                    if (g) fillTaxonomy(g, "genus");
-                  }}
-                >
-                  <option value="">—</option>
-                  {genera.map((g) => (
-                    <option key={g.genusSlug} value={g.genusSlug}>
-                      {g.genus} · {g.family}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>或选择已有的科（新属时用）</span>
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const f = families.find((x) => x.familySlug === e.target.value);
-                    if (f) fillTaxonomy(f, "family");
-                  }}
-                >
-                  <option value="">—</option>
-                  {families.map((f) => (
-                    <option key={f.familySlug} value={f.familySlug}>
-                      {f.family} · {f.order}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>类群</span>
-                <select value={row.division} onChange={(e) => set("division", e.target.value)}>
-                  <option value="">—</option>
-                  <option>裸子植物</option>
-                  <option>被子植物</option>
-                </select>
-              </label>
-            </div>
-            <div className="field-grid-4">
-              {TAXONOMY_FIELDS.map((f) => (
-                <label key={f.key} className="field">
-                  <span>{f.label}</span>
-                  <input value={row[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />
-                </label>
-              ))}
-            </div>
-            <p className="muted">标识用小写英文和 -，通常取拉丁名，例如 松科 → pinaceae、松属 → pinus。</p>
+            <TaxonomyFields
+              row={row}
+              rows={rows}
+              onChange={(patch) => {
+                setEditing({ ...editing, row: { ...row, ...patch } });
+                setDirty(true);
+              }}
+            />
 
             <h3>形态与生境</h3>
             {TEXT_FIELDS.map((f) => (

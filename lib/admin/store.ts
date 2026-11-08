@@ -133,12 +133,28 @@ export type PhotoInput = {
   date?: string;
 };
 
-export async function addPhoto(buffer: Buffer, input: PhotoInput) {
-  validatePlantAndPart(input.plant, input.part);
+// 裁剪区域，单位是按 EXIF 转正后的原图像素
+export type CropRect = { x: number; y: number; width: number; height: number };
 
+// 转正 → 裁剪 → 压缩到长边 1600px 的 JPEG（同时去除 EXIF）
+async function processImage(buffer: Buffer, crop?: CropRect | null) {
   const meta = await sharp(buffer).metadata();
-  const { data, info } = await sharp(buffer)
-    .rotate()
+  let image = sharp(buffer).rotate();
+
+  if (crop) {
+    // EXIF 方向 5–8 表示需要旋转 90°，转正后宽高互换
+    const swap = (meta.orientation ?? 1) >= 5;
+    const fullW = (swap ? meta.height : meta.width) ?? 0;
+    const fullH = (swap ? meta.width : meta.height) ?? 0;
+    const left = Math.max(0, Math.min(Math.round(crop.x), fullW - 1));
+    const top = Math.max(0, Math.min(Math.round(crop.y), fullH - 1));
+    const width = Math.max(1, Math.min(Math.round(crop.width), fullW - left));
+    const height = Math.max(1, Math.min(Math.round(crop.height), fullH - top));
+    // 在 rotate() 之后调用 extract()，裁剪基于转正后的图片
+    image = image.extract({ left, top, width, height });
+  }
+
+  const result = await image
     .resize({
       width: MAX_EDGE,
       height: MAX_EDGE,
@@ -147,6 +163,13 @@ export async function addPhoto(buffer: Buffer, input: PhotoInput) {
     })
     .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
     .toBuffer({ resolveWithObject: true });
+  return { ...result, meta };
+}
+
+export async function addPhoto(buffer: Buffer, input: PhotoInput, crop?: CropRect | null) {
+  validatePlantAndPart(input.plant, input.part);
+
+  const { data, info, meta } = await processImage(buffer, crop);
 
   const dir = path.join(photosDir, input.plant);
   fs.mkdirSync(dir, { recursive: true });
@@ -201,6 +224,25 @@ export function updatePhoto(file: string, input: PhotoInput) {
     updated: today(),
   });
 
+  writePhotoRows(rows);
+  return row;
+}
+
+// 重新裁剪已有图片（基于网站上保存的版本，覆盖原文件）
+export async function cropPhoto(file: string, crop: CropRect) {
+  const rows = readPhotoRows();
+  const row = rows.find((r) => r.file === file);
+  if (!row) throw new Error(`找不到图片 ${file}`);
+  const full = path.resolve(photosDir, file);
+  if (!full.startsWith(photosDir + path.sep)) throw new Error("非法路径");
+
+  const { data, info } = await processImage(fs.readFileSync(full), crop);
+  fs.writeFileSync(full, data);
+  Object.assign(row, {
+    width: String(info.width),
+    height: String(info.height),
+    updated: today(),
+  });
   writePhotoRows(rows);
   return row;
 }

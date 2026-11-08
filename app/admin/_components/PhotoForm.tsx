@@ -11,12 +11,15 @@ export default function PhotoForm({
   data,
   onAddTag,
   compact = false,
+  onCreatePlant,
 }: {
   meta: PhotoMeta;
   onChange: (meta: PhotoMeta) => void;
   data: AdminData;
   onAddTag: (tag: string) => Promise<void>;
   compact?: boolean;
+  // 打开“新增植物”对话框，返回新植物的 slug（取消时为 null）
+  onCreatePlant?: (name: string) => Promise<string | null>;
 }) {
   const set = <K extends keyof PhotoMeta>(key: K, value: PhotoMeta[K]) =>
     onChange({ ...meta, [key]: value });
@@ -27,7 +30,19 @@ export default function PhotoForm({
     <div className="photo-form">
       <label className="field">
         <span>植物</span>
-        <PlantPicker plants={data.plants} value={meta.plant} onChange={(v) => set("plant", v)} />
+        <PlantPicker
+          plants={data.plants}
+          value={meta.plant}
+          onChange={(v) => set("plant", v)}
+          onCreate={
+            onCreatePlant
+              ? async (name) => {
+                  const slug = await onCreatePlant(name);
+                  if (slug) set("plant", slug);
+                }
+              : undefined
+          }
+        />
       </label>
 
       <div className="field">

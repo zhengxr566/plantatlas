@@ -5,6 +5,7 @@ import CompareTab from "./CompareTab";
 import LibraryTab from "./LibraryTab";
 import PlantsTab from "./PlantsTab";
 import ProgressTab from "./ProgressTab";
+import QuickPlantDialog from "./QuickPlantDialog";
 import ReviewTab, { type Suggestion } from "./ReviewTab";
 import TagsTab from "./TagsTab";
 import UploadTab from "./UploadTab";
@@ -39,6 +40,17 @@ export default function AdminApp() {
   const [publishLog, setPublishLog] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [review, setReview] = useState<SuggestionState>({ enabled: false, suggestions: [] });
+  const [creatingPlant, setCreatingPlant] = useState<{
+    name: string;
+    resolve: (slug: string | null) => void;
+  } | null>(null);
+
+  // 图片表单中“新增植物”：打开对话框，新建成功后返回 slug
+  const createPlant = useCallback(
+    (name: string) =>
+      new Promise<string | null>((resolve) => setCreatingPlant({ name, resolve })),
+    []
+  );
 
   const refreshReview = useCallback(async () => {
     try {
@@ -152,10 +164,16 @@ export default function AdminApp() {
         <main className="admin-main">
           {/* 所有页签保持挂载，切换时不会丢失待上传的图片和编辑中的内容 */}
           <div hidden={tab !== "upload"}>
-            <UploadTab data={data} preset={preset} onUploaded={refresh} onAddTag={addTag} />
+            <UploadTab
+              data={data}
+              preset={preset}
+              onUploaded={refresh}
+              onAddTag={addTag}
+              onCreatePlant={createPlant}
+            />
           </div>
           <div hidden={tab !== "library"}>
-            <LibraryTab data={data} onChanged={refresh} onAddTag={addTag} />
+            <LibraryTab data={data} onChanged={refresh} onAddTag={addTag} onCreatePlant={createPlant} />
           </div>
           <div hidden={tab !== "progress"}>
             <ProgressTab
@@ -194,6 +212,22 @@ export default function AdminApp() {
             />
           </div>
         </main>
+      )}
+
+      {creatingPlant && (
+        <QuickPlantDialog
+          initialName={creatingPlant.name}
+          onCancel={() => {
+            creatingPlant.resolve(null);
+            setCreatingPlant(null);
+          }}
+          onCreated={async (slug) => {
+            // 先刷新植物列表，再把新植物填进表单
+            await refresh();
+            creatingPlant.resolve(slug);
+            setCreatingPlant(null);
+          }}
+        />
       )}
 
       {publishOpen && (

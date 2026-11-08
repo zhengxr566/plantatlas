@@ -1,5 +1,5 @@
 import { adminRoute } from "@/lib/admin/route";
-import { addPhoto, deletePhoto, updatePhoto } from "@/lib/admin/store";
+import { addPhoto, cropPhoto, deletePhoto, updatePhoto } from "@/lib/admin/store";
 
 // 上传：multipart/form-data，file + meta(JSON)
 export const POST = adminRoute(async (request: Request) => {
@@ -7,11 +7,14 @@ export const POST = adminRoute(async (request: Request) => {
   const file = form.get("file");
   if (!(file instanceof File)) throw new Error("缺少图片文件");
   const meta = JSON.parse(String(form.get("meta") ?? "{}"));
-  return addPhoto(Buffer.from(await file.arrayBuffer()), meta);
+  const crop = form.get("crop") ? JSON.parse(String(form.get("crop"))) : null;
+  return addPhoto(Buffer.from(await file.arrayBuffer()), meta, crop);
 });
 
 export const PATCH = adminRoute(async (request: Request) => {
-  const { file, ...input } = await request.json();
+  const { file, crop, ...input } = await request.json();
+  // 只传 crop 时：重新裁剪已有图片
+  if (crop) return { row: await cropPhoto(file, crop) };
   return { row: updatePhoto(file, input) };
 });
 

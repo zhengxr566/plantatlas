@@ -771,3 +771,59 @@
   gap: 6px;
   margin-top: 10px;
 }
+
+/* ---------- 裁剪 ---------- */
+
+.admin .crop-modal {
+  width: min(960px, 100%);
+}
+
+.admin .crop-stage {
+  position: relative;
+  display: inline-block;
+  margin: 12px 0;
+  line-height: 0;
+  user-select: none;
+  touch-action: none;
+}
+
+.admin .crop-stage img {
+  max-width: 100%;
+  max-height: 62vh;
+}
+
+.admin .crop-box {
+  position: absolute;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  cursor: move;
+}
+
+.admin .crop-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--a-green);
+  border-radius: 3px;
+  background: #fff;
+}
+
+/* 手柄放在框内角落，裁剪到图片边缘时也能拖动 */
+.admin .crop-nw { left: -2px; top: -2px; cursor: nwse-resize; }
+.admin .crop-ne { right: -2px; top: -2px; cursor: nesw-resize; }
+.admin .crop-sw { left: -2px; bottom: -2px; cursor: nesw-resize; }
+.admin .crop-se { right: -2px; bottom: -2px; cursor: nwse-resize; }
+
+/* 遮罩阴影只覆盖图片范围 */
+.admin .crop-stage {
+  overflow: hidden;
+}
+
+.admin .plant-picker-create {
+  color: var(--a-green);
+  font-weight: 600;
+}
+
+.admin .quick-plant {
+  width: min(760px, 100%);
+}

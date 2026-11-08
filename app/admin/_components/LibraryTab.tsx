@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import CropDialog, { type CropRect } from "./CropDialog";
 import PhotoForm from "./PhotoForm";
 import PlantPicker from "./PlantPicker";
 import { api, splitTags, type AdminData, type PhotoMeta, type PhotoRow } from "./types";
@@ -21,16 +22,22 @@ export default function LibraryTab({
   data,
   onChanged,
   onAddTag,
+  onCreatePlant,
 }: {
   data: AdminData;
   onChanged: () => void;
   onAddTag: (tag: string) => Promise<void>;
+  onCreatePlant?: (name: string) => Promise<string | null>;
 }) {
   const [plant, setPlant] = useState("");
   const [part, setPart] = useState("");
   const [onlyTodo, setOnlyTodo] = useState(false);
   const [editing, setEditing] = useState<{ file: string; meta: PhotoMeta } | null>(null);
   const [message, setMessage] = useState("");
+  const [cropping, setCropping] = useState(false);
+  // 裁剪后图片地址不变，用版本号刷新浏览器缓存
+  const [versions, setVersions] = useState<Record<string, number>>({});
+  const src = (file: string) => `/photos/${file}${versions[file] ? `?v=${versions[file]}` : ""}`;
 
   const plantName = (slug: string) => data.plants.find((p) => p.slug === slug)?.nameCn ?? slug;
   const partName = (slug: string) => data.parts.find((p) => p.slug === slug)?.nameCn ?? slug;
@@ -55,6 +62,22 @@ export default function LibraryTab({
       });
       setEditing({ file: row.file, meta: toMeta(row) });
       setMessage("已保存");
+      onChanged();
+    } catch (error) {
+      setMessage((error as Error).message);
+    }
+  }
+
+  async function applyCrop(crop: CropRect) {
+    if (!editing) return;
+    setCropping(false);
+    try {
+      const { row } = await api<{ row: PhotoRow }>("/api/admin/photos", {
+        method: "PATCH",
+        json: { file: editing.file, crop },
+      });
+      setVersions((v) => ({ ...v, [row.file]: Date.now() }));
+      setMessage(`已裁剪，保存为 ${row.width}×${row.height}`);
       onChanged();
     } catch (error) {
       setMessage((error as Error).message);
@@ -112,7 +135,7 @@ export default function LibraryTab({
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/photos/${p.file}`} alt="" loading="lazy" />
+                <img src={src(p.file)} alt="" loading="lazy" />
                 <span className="library-card-title">
                   {plantName(p.plant)} · {partName(p.part)}
                 </span>
@@ -125,17 +148,21 @@ export default function LibraryTab({
         {editing && (
           <aside className="panel library-editor">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/photos/${editing.file}`} alt="" className="library-editor-image" />
+            <img src={src(editing.file)} alt="" className="library-editor-image" />
             <p className="muted">{editing.file}</p>
             <PhotoForm
               meta={editing.meta}
               onChange={(meta) => setEditing({ ...editing, meta })}
               data={data}
               onAddTag={onAddTag}
+            onCreatePlant={onCreatePlant}
             />
             <div className="queue-item-actions">
               <button type="button" className="btn btn-primary" onClick={save}>
                 保存
+              </button>
+              <button type="button" className="btn" onClick={() => setCropping(true)}>
+                裁剪
               </button>
               <a
                 className="btn"
@@ -156,6 +183,14 @@ export default function LibraryTab({
           </aside>
         )}
       </div>
+
+      {cropping && editing && (
+        <CropDialog
+          src={src(editing.file)}
+          onCancel={() => setCropping(false)}
+          onApply={(crop) => applyCrop(crop)}
+        />
+      )}
     </div>
   );
 }

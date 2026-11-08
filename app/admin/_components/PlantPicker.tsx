@@ -9,11 +9,14 @@ export default function PlantPicker({
   value,
   onChange,
   placeholder = "搜索植物（中文名 / 学名）",
+  onCreate,
 }: {
   plants: AdminPlant[];
   value: string;
   onChange: (slug: string) => void;
   placeholder?: string;
+  // 提供时，搜索不到会显示“新增植物”
+  onCreate?: (query: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -54,7 +57,7 @@ export default function PlantPicker({
       />
       {open && (
         <ul className="plant-picker-list">
-          {matches.length === 0 && <li className="muted">没有匹配的植物</li>}
+          {matches.length === 0 && !onCreate && <li className="muted">没有匹配的植物</li>}
           {matches.map((p) => (
             <li key={p.slug}>
               <button
@@ -73,6 +76,21 @@ export default function PlantPicker({
               </button>
             </li>
           ))}
+          {onCreate && query.trim() && !plants.some((p) => p.nameCn === query.trim()) && (
+            <li>
+              <button
+                type="button"
+                className="plant-picker-create"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onCreate(query.trim());
+                  setOpen(false);
+                }}
+              >
+                + 新增植物「{query.trim()}」
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </div>
