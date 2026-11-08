@@ -46,7 +46,7 @@ export const identifyPages: IdentifyPage[] = [
     slug: "palmate-leaf-trees",
     title: "掌状叶的树有哪些",
     description: "通过掌状叶、裂片数量和叶缘特征识别常见树木",
-    tagRules: ["掌状叶", "掌状复叶", "大叶"],
+    tagRules: ["掌状叶", "掌状复叶"],
     intro:
       "掌状叶通常指叶片裂片或小叶从一个中心向外展开，像手掌一样。",
     seoText:
@@ -78,7 +78,7 @@ export const identifyPages: IdentifyPage[] = [
     slug: "yellow-autumn-leaves",
     title: "秋天变黄的树有哪些",
     description: "按秋季黄叶特征识别常见树木",
-    tagRules: ["秋天变黄", "金黄秋叶", "黄褐秋叶", "秋色叶"],
+    tagRules: ["秋天变黄", "金黄秋叶", "黄褐秋叶", "黄色秋叶"],
     intro:
       "秋天变黄是很多落叶树的重要季相特征，常见于行道树、公园树和水边树木。",
     seoText:
@@ -94,7 +94,7 @@ export const identifyPages: IdentifyPage[] = [
     slug: "red-autumn-leaves",
     title: "秋天变红的树有哪些",
     description: "按秋季红叶特征识别常见观叶树",
-    tagRules: ["秋天变红", "红色秋叶", "秋色叶", "观叶植物"],
+    tagRules: ["秋天变红", "红色秋叶"],
     intro:
       "秋天变红的植物常用于园林观赏，叶色变化明显，适合在公园和庭院中观察。",
     seoText:
@@ -158,7 +158,7 @@ export const identifyPages: IdentifyPage[] = [
     slug: "wetland-plants",
     title: "湿地植物有哪些",
     description: "识别河岸、湖边和湿地环境中常见植物",
-    tagRules: ["湿地植物", "水边植物", "耐水湿", "喜湿"],
+    tagRules: ["湿地植物", "水边植物", "耐水湿"],
     intro:
       "湿地和水边植物通常适应较高湿度或短期积水环境，常见于河岸、湖边、公园水系和湿地绿化。",
     seoText:
@@ -174,7 +174,7 @@ export const identifyPages: IdentifyPage[] = [
     slug: "water-side-plants",
     title: "水边植物有哪些",
     description: "识别湖边、河边和公园水系附近常见植物",
-    tagRules: ["水边植物", "湿地植物", "喜湿", "耐水湿"],
+    tagRules: ["水边植物", "湿地植物", "耐水湿"],
     intro:
       "水边植物常见于河岸、湖边、湿地公园和城市水系附近，通常适应潮湿环境。",
     seoText:
@@ -190,7 +190,7 @@ export const identifyPages: IdentifyPage[] = [
     slug: "pine-trees",
     title: "松树有哪些",
     description: "通过针叶成束、松果和树皮识别常见松树",
-    tagRules: ["松属", "松果", "针形叶", "针叶树", "松科"],
+    tagRules: ["松属", "松果", "松科"],
     intro:
       "松树通常属于松科松属，多数具有针形叶和明显松果。",
     seoText:
@@ -206,7 +206,7 @@ export const identifyPages: IdentifyPage[] = [
     slug: "cypress-like-trees",
     title: "柏树有哪些",
     description: "通过鳞形叶、球果和树形识别常见柏类植物",
-    tagRules: ["柏科", "鳞形叶", "针叶树", "浆果状球果"],
+    tagRules: ["鳞形叶", "浆果状球果"],
     intro:
       "柏类植物通常具有鳞片状叶或针叶，很多种类常用于绿篱、陵园和城市绿化。",
     seoText:
