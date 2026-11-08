@@ -113,9 +113,12 @@ const PART_TAG_RULES: Record<string, (tag: string) => boolean> = {
 };
 
 // 上传图片时按部位从植物资料中预选的标签（例如银杏 + 叶片 → 扇形叶、放射状叶脉、秋天变黄）
+// 分类名（杜鹃花科、蓝花楹属）不是照片上能看到的特征
+const TAXON = /[纲目科属]$/;
+
 export function partTagsFor(plant: AdminPlant | undefined, part: string) {
   const rule = PART_TAG_RULES[part];
-  return plant && rule ? plant.tags.filter(rule) : [];
+  return plant && rule ? plant.tags.filter((t) => !TAXON.test(t) && rule(t)) : [];
 }
 
 export function plantLabel(plant?: AdminPlant) {
