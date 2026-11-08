@@ -28,7 +28,11 @@ npm run build
 | 发布到网站 | 只提交图片、`plants.csv`、`photos.csv`、`compare.csv`、`tags.md`（不提交代码），推送到 GitHub，Vercel 自动部署 |
 
 上传时会自动：压缩到长边 1600px 的 JPEG（质量 82）、按 EXIF 自动旋转、**去除 GPS 等 EXIF 信息**、
-读取拍摄日期、命名为 `<部位>-<序号>.jpg`。在搜索框输入 `tags.md` 里没有的标签并回车，会写入 `tags.md` 的「自定义」分组。
+读取拍摄日期、命名为 `<部位>-<序号>.jpg`，并生成 320 / 640 / 960 / 1600 宽的 WebP（如 `leaf-01-640.webp`）。
+
+网站显示图片时直接使用这些 WebP（`lib/imageLoader.ts` 自定义加载器），**不使用 Vercel 的图片优化**，
+因此没有免费版每月 5000 次的限制。JPEG 原图保留给 Google 图片、sitemap 和社交分享使用。
+手动放进 `public/photos` 的图片，运行 `npm run photos` 会补生成缺少的 WebP；重新裁剪后也会自动更新。在搜索框输入 `tags.md` 里没有的标签并回车，会写入 `tags.md` 的「自定义」分组。
 
 后台改动保存后，本地网站页面立刻更新，可以先在 http://localhost:3000 确认，再点“发布到网站”。
 

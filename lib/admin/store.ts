@@ -8,6 +8,10 @@ import sharp from "sharp";
 import { getPart } from "@/data/parts";
 import { loadPlants } from "@/lib/loadPlants";
 import { readTagGroups, tagsMdPath as tagsMd } from "@/lib/tags";
+import { VARIANT_WIDTHS, variantPath } from "@/lib/imageVariants";
+
+// 网站使用的 WebP 质量（原始 JPEG 另存一份给 Google 图片和 sitemap）
+const VARIANT_QUALITY = 78;
 
 export { readTagGroups, type TagGroup } from "@/lib/tags";
 
@@ -166,6 +170,22 @@ async function processImage(buffer: Buffer, crop?: CropRect | null) {
   return { ...result, meta };
 }
 
+// 生成网站使用的 WebP 尺寸（320/640/960/1600），与 JPEG 放在同一文件夹
+export async function writeVariants(jpegPath: string, jpeg?: Buffer) {
+  const source = jpeg ?? fs.readFileSync(jpegPath);
+  for (const width of VARIANT_WIDTHS) {
+    const data = await sharp(source)
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: VARIANT_QUALITY })
+      .toBuffer();
+    fs.writeFileSync(variantPath(jpegPath, width), data);
+  }
+}
+
+function variantFiles(jpegPath: string) {
+  return VARIANT_WIDTHS.map((w) => variantPath(jpegPath, w));
+}
+
 export async function addPhoto(buffer: Buffer, input: PhotoInput, crop?: CropRect | null) {
   validatePlantAndPart(input.plant, input.part);
 
@@ -175,6 +195,7 @@ export async function addPhoto(buffer: Buffer, input: PhotoInput, crop?: CropRec
   fs.mkdirSync(dir, { recursive: true });
   const name = nextFileName(input.plant, input.part);
   fs.writeFileSync(path.join(dir, name), data, { flag: "wx" });
+  await writeVariants(path.join(dir, name), data);
 
   const row: PhotoRow = {
     file: `${input.plant}/${name}`,
@@ -206,10 +227,16 @@ export function updatePhoto(file: string, input: PhotoInput) {
   if (row.plant !== input.plant) {
     const name = nextFileName(input.plant, input.part);
     fs.mkdirSync(path.join(photosDir, input.plant), { recursive: true });
-    fs.renameSync(
-      path.join(photosDir, row.file),
-      path.join(photosDir, input.plant, name)
-    );
+    const from = path.join(photosDir, row.file);
+    const to = path.join(photosDir, input.plant, name);
+    fs.renameSync(from, to);
+    // WebP 尺寸一起移动
+    variantFiles(from).forEach((v, i) => {
+      if (fs.existsSync(v)) fs.renameSync(v, variantFiles(to)[i]);
+    });
+    // 原植物文件夹空了就删掉
+    const oldDir = path.dirname(from);
+    if (fs.readdirSync(oldDir).length === 0) fs.rmdirSync(oldDir);
     row.file = `${input.plant}/${name}`;
   }
 
@@ -238,6 +265,7 @@ export async function cropPhoto(file: string, crop: CropRect) {
 
   const { data, info } = await processImage(fs.readFileSync(full), crop);
   fs.writeFileSync(full, data);
+  await writeVariants(full, data);
   Object.assign(row, {
     width: String(info.width),
     height: String(info.height),
@@ -253,7 +281,7 @@ export function deletePhoto(file: string) {
 
   const full = path.resolve(photosDir, file);
   if (!full.startsWith(photosDir + path.sep)) throw new Error("非法路径");
-  if (fs.existsSync(full)) fs.unlinkSync(full);
+  [full, ...variantFiles(full)].forEach((f) => fs.existsSync(f) && fs.unlinkSync(f));
   // 植物文件夹空了就一起删掉
   const dir = path.dirname(full);
   if (dir !== photosDir && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);

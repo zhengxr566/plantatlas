@@ -7,7 +7,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { parse } from "csv-parse/sync";
 import { imageSize } from "image-size";
+import sharp from "sharp";
 import { plantParts } from "../data/parts.ts";
+import { VARIANT_WIDTHS, variantPath } from "../lib/imageVariants.ts";
 
 const root = process.cwd();
 const photosDir = path.join(root, "public", "photos");
@@ -28,6 +30,8 @@ const COLUMNS = [
   "updated",
 ];
 const IMAGE_EXT = /\.(jpe?g|png|webp|avif)$/i;
+const VARIANT_FILE = /-\d+\.webp$/i;
+const VARIANT_QUALITY = 78;
 const LARGE_FILE_BYTES = 1.5 * 1024 * 1024;
 
 const partSlugs = new Set(plantParts.map((p) => p.slug));
@@ -63,7 +67,8 @@ function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) return walk(full);
-    return IMAGE_EXT.test(entry.name) ? [full] : [];
+    // leaf-01-640.webp 这类是网站用的预生成尺寸，不是新图片
+    return IMAGE_EXT.test(entry.name) && !VARIANT_FILE.test(entry.name) ? [full] : [];
   });
 }
 
@@ -141,6 +146,25 @@ if (fs.existsSync(comparePath)) {
   });
 }
 
+// 生成缺失或过期的 WebP 尺寸（网站通过 lib/imageLoader.ts 直接使用这些文件）
+let variantsCreated = 0;
+for (const row of rows) {
+  const full = path.join(photosDir, row.file);
+  if (!fs.existsSync(full) || !/\.(jpe?g|png)$/i.test(full)) continue;
+  const sourceTime = fs.statSync(full).mtimeMs;
+  for (const width of VARIANT_WIDTHS) {
+    const target = variantPath(full, width);
+    if (fs.existsSync(target) && fs.statSync(target).mtimeMs >= sourceTime) continue;
+    const data = await sharp(full)
+      .rotate()
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: VARIANT_QUALITY })
+      .toBuffer();
+    fs.writeFileSync(target, data);
+    variantsCreated += 1;
+  }
+}
+
 rows.sort((a, b) => a.file.localeCompare(b.file));
 
 function csvCell(value) {
@@ -155,7 +179,7 @@ const output = [
 
 fs.writeFileSync(csvPath, `${output}\n`, "utf8");
 
-console.log(`photos.csv: ${rows.length} 张图片，新增 ${added} 张`);
+console.log(`photos.csv: ${rows.length} 张图片，新增 ${added} 张；生成 WebP 尺寸 ${variantsCreated} 个`);
 if (warnings.length > 0) {
   console.log(`\n需要处理的问题（${warnings.length}）：`);
   warnings.forEach((w) => console.log(`  - ${w}`));

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { hierarchy, tree, type HierarchyPointNode } from "d3-hierarchy";
 import type { LineageNode } from "@/lib/lineage";
 import { track } from "@/lib/analytics";
+import { variantPath } from "@/lib/imageVariants";
 
 // ---------- 布局常量（单位：画布坐标，缩放 k=1 时等于像素） ----------
 const COL = 200; // 每一层的水平间距
@@ -20,8 +21,9 @@ type Transform = { x: number; y: number; k: number };
 type VNode = { id: string; node: LineageNode; open: boolean; species: number; children?: VNode[] };
 type Point = HierarchyPointNode<VNode>;
 
+// 名片缩略图：直接使用预生成的 320px WebP
 function thumb(src: string) {
-  return `/_next/image?url=${encodeURIComponent(src)}&w=128&q=75`;
+  return variantPath(src, 320);
 }
 
 function truncate(text: string, max: number) {
