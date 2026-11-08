@@ -318,9 +318,43 @@ function editTagsMd(edit: (lines: string[]) => void) {
   fs.writeFileSync(tagsMd, lines.join(eol), "utf8");
 }
 
-// 新标签写入 tags.md 的指定分组（默认“自定义”分组，放在“Tag 使用规则”之前）
-export function addTag(tag: string, group = CUSTOM_GROUP) {
+function validateGroupName(group: string) {
+  const clean = group.trim();
+  if (!clean || /[\r\n#]/.test(clean) || clean.startsWith("Tag 使用规则")) {
+    throw new Error("分组名不能为空，也不能包含 # 或换行");
+  }
+  return clean;
+}
+
+// 删除已经没有标签的分组标题（保留“Tag 使用规则”等说明段落）
+function removeEmptyGroups(lines: string[]) {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (!lines[i].startsWith("## ") || lines[i].startsWith("## Tag 使用规则")) continue;
+    let end = i + 1;
+    while (end < lines.length && !lines[end].startsWith("## ")) end++;
+    if (lines.slice(i + 1, end).every((l) => l.trim() === "")) lines.splice(i, end - i);
+  }
+}
+
+// 把词表中的标签移到另一个分组（分组不存在时新建）；不影响图片和植物数据
+export function moveTag(tag: string, group: string) {
+  const target = validateGroupName(group);
+  const current = readTagGroups().find((g) => g.tags.includes(tag));
+  if (!current) throw new Error(`“${tag}”不在词表中`);
+  if (current.name === target) return;
+
+  editTagsMd((lines) => {
+    const i = lines.findIndex((l) => l.trim() === `- ${tag}`);
+    if (i >= 0) lines.splice(i, 1);
+    removeEmptyGroups(lines);
+  });
+  addTag(tag, target);
+}
+
+// 新标签写入 tags.md 的指定分组（默认“自定义”分组；分组不存在时新建在“Tag 使用规则”之前）
+export function addTag(tag: string, groupName = CUSTOM_GROUP) {
   const clean = validateTagName(tag);
+  const group = validateGroupName(groupName);
   if (readTagGroups().some((g) => g.tags.includes(clean))) return;
 
   editTagsMd((lines) => {
@@ -549,6 +583,7 @@ export function renameTag(from: string, toInput: string) {
     if (i < 0) return; // from 只出现在数据中，不在词表里
     if (known.has(to)) lines.splice(i, 1);
     else lines[i] = `- ${to}`;
+    removeEmptyGroups(lines);
   });
   // from 不在词表、to 也是新标签时，把 to 加入“自定义”分组
   if (!known.has(from) && !known.has(to)) addTag(to);
@@ -561,6 +596,7 @@ export function deleteTag(tag: string) {
   editTagsMd((lines) => {
     const i = lines.findIndex((l) => l.trim() === `- ${tag}`);
     if (i >= 0) lines.splice(i, 1);
+    removeEmptyGroups(lines);
   });
   return applyTagChange(tag, null);
 }

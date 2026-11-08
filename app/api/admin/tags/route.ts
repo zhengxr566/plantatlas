@@ -3,6 +3,7 @@ import {
   addTag,
   deleteTag,
   getTagUsage,
+  moveTag,
   readTagGroups,
   renameTag,
 } from "@/lib/admin/store";
@@ -19,9 +20,13 @@ export const POST = adminRoute(async (request: Request) => {
   return { tagGroups: readTagGroups() };
 });
 
-// 重命名 / 合并
+// 重命名 / 合并；传 { tag, group } 时为移动到其他分组
 export const PATCH = adminRoute(async (request: Request) => {
-  const { from, to } = await request.json();
+  const { from, to, tag, group } = await request.json();
+  if (group) {
+    moveTag(String(tag), String(group));
+    return { tagGroups: readTagGroups() };
+  }
   const changed = renameTag(String(from), String(to ?? ""));
   return { changed, tagGroups: readTagGroups() };
 });

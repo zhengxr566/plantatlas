@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import GroupSelect, { CUSTOM_GROUP } from "./GroupSelect";
 import { api, type AdminData, type TagGroup } from "./types";
 
 type Usage = { tag: string; inVocabulary: boolean; photos: number; plants: number };
 type Filter = "all" | "vocab" | "outside" | "unused";
-
-const CUSTOM_GROUP = "自定义 Custom";
 
 // 标签词表管理：查看用量、改名 / 合并、删除、把数据里出现的新标签加入词表
 export default function TagsTab({
@@ -103,13 +102,11 @@ export default function TagsTab({
           placeholder="新标签"
           onChange={(e) => setNewTag({ ...newTag, tag: e.target.value })}
         />
-        <select value={newTag.group} onChange={(e) => setNewTag({ ...newTag, group: e.target.value })}>
-          {[...groups.map((g) => g.name), ...(groups.some((g) => g.name === CUSTOM_GROUP) ? [] : [CUSTOM_GROUP])].map(
-            (name) => (
-              <option key={name}>{name}</option>
-            )
-          )}
-        </select>
+        <GroupSelect
+          value={newTag.group}
+          groups={groups.map((g) => g.name)}
+          onChange={(group) => setNewTag({ ...newTag, group })}
+        />
         <button
           type="button"
           className="btn btn-primary"
@@ -145,9 +142,30 @@ export default function TagsTab({
                 <th>{u.tag}</th>
                 <td>
                   {u.inVocabulary ? (
-                    <span className="muted">{groupOf.get(u.tag)}</span>
+                    <GroupSelect
+                      value={groupOf.get(u.tag) ?? CUSTOM_GROUP}
+                      groups={groups.map((g) => g.name)}
+                      title="移到其他分组"
+                      onChange={(group) =>
+                        run(async () => {
+                          await api("/api/admin/tags", { method: "PATCH", json: { tag: u.tag, group } });
+                          return `已把“${u.tag}”移到“${group}”`;
+                        })
+                      }
+                    />
                   ) : (
-                    <span className="badge badge-warn">不在词表</span>
+                    <GroupSelect
+                      value=""
+                      placeholder="不在词表 · 加入到…"
+                      groups={groups.map((g) => g.name)}
+                      title="加入 tags.md 的哪个分组"
+                      onChange={(group) =>
+                        run(async () => {
+                          await api("/api/admin/tags", { method: "POST", json: { tag: u.tag, group } });
+                          return `已把“${u.tag}”加入“${group}”`;
+                        })
+                      }
+                    />
                   )}
                 </td>
                 <td>{u.photos || ""}</td>
@@ -192,20 +210,6 @@ export default function TagsTab({
                       >
                         改名 / 合并
                       </button>
-                      {!u.inVocabulary && (
-                        <button
-                          type="button"
-                          className="btn btn-small"
-                          onClick={() =>
-                            run(async () => {
-                              await api("/api/admin/tags", { method: "POST", json: { tag: u.tag } });
-                              return `已把“${u.tag}”加入“${CUSTOM_GROUP}”分组`;
-                            })
-                          }
-                        >
-                          加入词表
-                        </button>
-                      )}
                       <button
                         type="button"
                         className="btn btn-small btn-danger"

@@ -93,8 +93,8 @@ export const PART_TAG_GROUPS: Record<string, string[]> = {
   fruit: ["花果"],
   cone: ["花果", "叶片"],
   seed: ["花果"],
-  bark: ["特殊", "树形"],
+  bark: ["树皮", "特殊", "树形"],
   branch: ["树形", "特殊"],
-  bud: ["季节", "特殊"],
+  bud: ["芽", "季节", "特殊"],
   habit: ["树形", "季节", "用途", "环境"],
 };

@@ -26,7 +26,7 @@ export default function LibraryTab({
 }: {
   data: AdminData;
   onChanged: () => void;
-  onAddTag: (tag: string) => Promise<void>;
+  onAddTag: (tag: string, group?: string) => Promise<void>;
   onCreatePlant?: (name: string) => Promise<string | null>;
 }) {
   const [plant, setPlant] = useState("");

@@ -95,10 +95,10 @@ export default function AdminApp() {
     };
   }, []);
 
-  const addTag = useCallback(async (tag: string) => {
+  const addTag = useCallback(async (tag: string, group?: string) => {
     const { tagGroups } = await api<{ tagGroups: TagGroup[] }>("/api/admin/tags", {
       method: "POST",
-      json: { tag },
+      json: { tag, group },
     });
     setData((d) => (d ? { ...d, tagGroups } : d));
     refreshStatus();

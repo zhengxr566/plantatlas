@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import GroupSelect, { CUSTOM_GROUP } from "./GroupSelect";
 import { PART_TAG_GROUPS, type TagGroup } from "./types";
 
-// 标签选择：点击切换；搜索框回车可添加；新标签会写入 tags.md
+// 标签选择：点击切换；搜索框回车可添加；新标签写入 tags.md 的所选分组
 export default function TagPicker({
   value,
   onChange,
@@ -15,10 +16,12 @@ export default function TagPicker({
   onChange: (tags: string[]) => void;
   groups: TagGroup[];
   part: string;
-  onAddTag: (tag: string) => Promise<void>;
+  onAddTag: (tag: string, group?: string) => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
+  // 用户手动选的分组；没选时按当前部位推荐
+  const [chosenGroup, setChosenGroup] = useState<string | null>(null);
 
   // 当前部位相关的分组排在前面
   const ordered = useMemo(() => {
@@ -31,6 +34,10 @@ export default function TagPicker({
   }, [groups, part]);
 
   const allTags = useMemo(() => groups.flatMap((g) => g.tags), [groups]);
+  const priority = PART_TAG_GROUPS[part] ?? [];
+  const suggestedGroup =
+    ordered.find((g) => priority.some((p) => g.name.startsWith(p)))?.name ?? CUSTOM_GROUP;
+  const newGroup = chosenGroup ?? suggestedGroup;
   const q = query.trim();
   const isNew = q && !allTags.includes(q);
 
@@ -42,7 +49,7 @@ export default function TagPicker({
     if (!q) return;
     setBusy(true);
     try {
-      await onAddTag(q);
+      await onAddTag(q, newGroup);
       if (!value.includes(q)) onChange([...value, q]);
       setQuery("");
     } finally {
@@ -79,9 +86,17 @@ export default function TagPicker({
           }}
         />
         {isNew && (
-          <button type="button" className="btn btn-small" disabled={busy} onClick={addNew}>
-            新增「{q}」到 tags.md
-          </button>
+          <>
+            <GroupSelect
+              value={newGroup}
+              groups={groups.map((g) => g.name)}
+              onChange={setChosenGroup}
+              title="新标签放进哪个分组"
+            />
+            <button type="button" className="btn btn-small" disabled={busy} onClick={addNew}>
+              新增「{q}」
+            </button>
+          </>
         )}
       </div>
 

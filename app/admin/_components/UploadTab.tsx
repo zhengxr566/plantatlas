@@ -38,7 +38,7 @@ export default function UploadTab({
   data: AdminData;
   preset: { plant: string; part: string } | null;
   onUploaded: () => void;
-  onAddTag: (tag: string) => Promise<void>;
+  onAddTag: (tag: string, group?: string) => Promise<void>;
   onCreatePlant?: (name: string) => Promise<string | null>;
 }) {
   const [defaults, setDefaults] = useState<PhotoMeta>(EMPTY_META);

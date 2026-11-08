@@ -827,3 +827,10 @@
 .admin .quick-plant {
   width: min(760px, 100%);
 }
+
+.admin .group-select {
+  width: auto;
+  min-width: 150px;
+  padding: 4px 8px;
+  font-size: 12px;
+}

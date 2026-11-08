@@ -16,7 +16,7 @@ export default function PhotoForm({
   meta: PhotoMeta;
   onChange: (meta: PhotoMeta) => void;
   data: AdminData;
-  onAddTag: (tag: string) => Promise<void>;
+  onAddTag: (tag: string, group?: string) => Promise<void>;
   compact?: boolean;
   // 打开“新增植物”对话框，返回新植物的 slug（取消时为 null）
   onCreatePlant?: (name: string) => Promise<string | null>;

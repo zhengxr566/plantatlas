@@ -24,7 +24,7 @@ export default function PlantsTab({
 }: {
   data: AdminData;
   onChanged: () => void;
-  onAddTag: (tag: string) => Promise<void>;
+  onAddTag: (tag: string, group?: string) => Promise<void>;
 }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
