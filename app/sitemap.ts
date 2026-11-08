@@ -54,6 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: baseUrl, priority: 1 },
     { url: `${baseUrl}/identify`, priority: 0.95 },
     { url: `${baseUrl}/compare`, priority: 0.95 },
+    { url: `${baseUrl}/lineage`, priority: 0.9 },
 
     ...plants.map((p) => ({
       url: `${baseUrl}/plant/${p.slug}`,

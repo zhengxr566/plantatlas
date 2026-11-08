@@ -69,6 +69,8 @@ export default function AtlasShell({
       </main>
 
       <footer className="site-footer">
+        <Link href="/lineage">谱系地图</Link>
+        <span>·</span>
         <Link href="/compare">植物对比</Link>
         <span>·</span>
         <Link href="/identify">植物识别</Link>

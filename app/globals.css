@@ -872,3 +872,151 @@ a {
 .part-compare-col .photo-placeholder {
   margin-bottom: 8px;
 }
+
+/* =========================
+   Lineage map
+========================= */
+
+.lineage-map {
+  margin: 16px 0 28px;
+}
+
+.lineage-map-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.lineage-map-path button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #2f6b3a;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lineage-map-path button:hover {
+  text-decoration: underline;
+}
+
+.lineage-map-sep {
+  margin: 0 6px;
+  color: #9aaa9d;
+}
+
+.lineage-map-stats {
+  color: #607464;
+  font-size: 0.85rem;
+}
+
+.lineage-map-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.lineage-map-search input {
+  flex: 1;
+  min-width: 160px;
+  max-width: 280px;
+  padding: 6px 10px;
+  border: 1px solid #dce8da;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.lineage-map-search button {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #2f6b3a;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.lineage-map-error {
+  color: #b03a2e;
+  font-size: 0.85rem;
+}
+
+.lineage-map-svg {
+  display: block;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  border-radius: 50%;
+  cursor: zoom-out;
+  user-select: none;
+}
+
+.lineage-map-svg circle {
+  cursor: pointer;
+}
+
+.lineage-group:hover {
+  stroke: #6b8a6d;
+  stroke-width: 1.5;
+}
+
+.lineage-leaf:hover {
+  stroke: #2f6b3a;
+  stroke-width: 2.5;
+}
+
+.lineage-label {
+  fill: #1f2a24;
+  font-size: 12px;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.lineage-label-photo {
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.55);
+}
+
+.lineage-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: #607464;
+}
+
+.lineage-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: -6px;
+  border: 1px solid #97c459;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.lineage-dot-photo {
+  border-color: #2f6b3a;
+  background: #6b8a6d;
+}
+
+.lineage-directory details {
+  margin: 4px 0;
+}
+
+.lineage-directory ul {
+  margin: 4px 0;
+  padding-left: 20px;
+}

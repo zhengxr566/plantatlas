@@ -5,6 +5,9 @@ import { loadPlants } from "@/lib/loadPlants";
 import { taxonomyRobots } from "@/lib/taxonomy";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
+import LineageMap from "@/app/components/LineageMap";
+import { buildLineageTree, findLineageNode } from "@/lib/lineage";
+import { loadPhotos } from "@/lib/loadPhotos";
 import { taxonomyCrumbs } from "@/lib/structuredData";
 
 function toList(value: unknown): string[] {
@@ -68,6 +71,7 @@ export default async function GenusPage({
   if (list.length === 0) notFound();
 
   const first = list[0];
+  const lineageNode = findLineageNode(buildLineageTree(plants, loadPhotos()), `/genus/${slug}`);
 
   const habits = unique(list.map((p) => p.habit || ""));
   const allTags = unique(list.flatMap((p) => toList(p.tags))).slice(0, 24);
@@ -90,6 +94,8 @@ export default async function GenusPage({
         本页面整理本站已收录的常见{first.genus}植物，
         包括{list.slice(0, 8).map((p) => p.nameCn).join("、")}等。
       </p>
+
+      {list.length >= 2 && lineageNode && <LineageMap data={lineageNode} compact />}
 
       <h2>{first.genus}的分类位置</h2>
       <div className="lineage-horizontal">

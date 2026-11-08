@@ -5,6 +5,9 @@ import { loadPlants } from "@/lib/loadPlants";
 import { taxonomyRobots } from "@/lib/taxonomy";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
+import LineageMap from "@/app/components/LineageMap";
+import { buildLineageTree, findLineageNode } from "@/lib/lineage";
+import { loadPhotos } from "@/lib/loadPhotos";
 import { taxonomyCrumbs } from "@/lib/structuredData";
 
 function toList(value: unknown): string[] {
@@ -68,6 +71,7 @@ export default async function FamilyPage({
   if (list.length === 0) notFound();
 
   const first = list[0];
+  const lineageNode = findLineageNode(buildLineageTree(plants, loadPhotos()), `/family/${slug}`);
 
   const genera = unique(list.map((p) => p.genus));
   const habits = unique(list.map((p) => p.habit || ""));
@@ -89,6 +93,8 @@ export default async function FamilyPage({
         这些植物在形态、用途和生长环境上可能存在差异，
         但通常可以通过科属关系、叶片、花、果实和树皮特征进行归类与识别。
       </p>
+
+      {list.length >= 2 && lineageNode && <LineageMap data={lineageNode} compact />}
 
       <h2>{first.family}的分类位置</h2>
       <div className="lineage-horizontal">

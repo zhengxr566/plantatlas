@@ -97,7 +97,11 @@ export default function LineageSidebar({
 
         <div className="sidebar-section">
           <div className="sidebar-head">
-            <h3>谱系结构</h3>
+            <h3>
+              <Link href="/lineage" className="sidebar-title-link">
+                谱系结构（地图）
+              </Link>
+            </h3>
             <button type="button" onClick={() => setOpenAll((value) => !value)}>
               {openAll ? "全部折叠" : "全部展开"}
             </button>
