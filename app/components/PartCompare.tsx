@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PartPlaceholder from "@/app/components/PartPlaceholder";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import { getPart } from "@/data/parts";
 import { getPartTags, type PlantPhoto } from "@/lib/loadPhotos";
@@ -19,6 +20,18 @@ export function describePartDifference(
   const part = getPart(partSlug);
   if (!part) return { shared: [], onlyA: [], onlyB: [], text: "" };
 
+  const lookFor = `观察${part.nameCn}时，建议重点比较${part.lookFor}。`;
+
+  // 只有一方或双方都没有照片：不做标签对比，避免误导
+  if (photosA.length === 0 || photosB.length === 0) {
+    const has = photosA.length > 0 ? plantA : photosB.length > 0 ? plantB : null;
+    const missing = has === plantA ? plantB : plantA;
+    const text = has
+      ? `目前只有${has.nameCn}的${part.noun}实拍图，${missing.nameCn}的${part.noun}照片还在整理中。${lookFor}`
+      : `${plantA.nameCn}和${plantB.nameCn}的${part.noun}实拍图还在整理中。${lookFor}`;
+    return { shared: [], onlyA: [], onlyB: [], text };
+  }
+
   const tagsA = getPartTags(photosA, partSlug);
   const tagsB = getPartTags(photosB, partSlug);
   const shared = tagsA.filter((t) => tagsB.includes(t));
@@ -32,12 +45,13 @@ export function describePartDifference(
     onlyA.length > 0 || onlyB.length > 0
       ? `区别在于：${plantA.nameCn}的${part.noun}表现为${joinCn(onlyA, "无额外特征")}，而${plantB.nameCn}的${part.noun}表现为${joinCn(onlyB, "无额外特征")}。`
       : "",
-    `观察${part.nameCn}时，建议重点比较${part.lookFor}。`,
+    lookFor,
   ];
 
   return { shared, onlyA, onlyB, text: sentences.filter(Boolean).join("") };
 }
 
+// 某一部位的左右对比：每侧第一张大图，其余为小图；没有照片的一侧显示占位卡片
 export default function PartCompare({
   partSlug,
   plantA,
@@ -45,7 +59,8 @@ export default function PartCompare({
   plantB,
   photosB,
   pairSlug,
-  maxPhotos = 2,
+  maxPhotos = 4,
+  excludeIds = [],
   headingLevel = "h3",
   preload = false,
   suggestable = false,
@@ -56,7 +71,10 @@ export default function PartCompare({
   plantB: PlantName;
   photosB: PlantPhoto[];
   pairSlug: string;
+  // 每侧最多显示几张（超出的在部位对比页查看）
   maxPhotos?: number;
+  // 已在页面其他位置展示的图片（如首图），这里不再重复
+  excludeIds?: string[];
   headingLevel?: "h2" | "h3";
   preload?: boolean;
   suggestable?: boolean;
@@ -73,6 +91,7 @@ export default function PartCompare({
     plantB,
     listB
   );
+  const bothHavePhotos = listA.length > 0 && listB.length > 0;
   const Heading = headingLevel;
 
   return (
@@ -87,50 +106,90 @@ export default function PartCompare({
         {[
           { plant: plantA, list: listA },
           { plant: plantB, list: listB },
-        ].map(({ plant, list }) => (
-          <div key={plant.slug} className="part-compare-col">
-            <div className="part-compare-label">
-              <Link href={`/plant/${plant.slug}`} className="link">
-                {plant.nameCn}
-              </Link>
-              的{part.noun}
+        ].map(({ plant, list }) => {
+          const visible = list.filter((p) => !excludeIds.includes(p.id));
+          const [main, ...rest] = visible.slice(0, maxPhotos);
+          const hidden = visible.length - Math.min(visible.length, maxPhotos);
+          return (
+            <div key={plant.slug} className="part-compare-col">
+              <div className="part-compare-label">
+                <Link href={`/plant/${plant.slug}`} className="link">
+                  {plant.nameCn}
+                </Link>
+                的{part.noun}
+                {list.length > 1 && <span className="meta">（{list.length} 张）</span>}
+              </div>
+
+              {main ? (
+                <PhotoFigure
+                  photo={main}
+                  plant={plant}
+                  preload={preload}
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  suggestable={suggestable}
+                />
+              ) : list.length > 0 ? (
+                <p className="meta">见上方首图</p>
+              ) : (
+                <PartPlaceholder partSlug={part.slug} plantName={plant.nameCn} />
+              )}
+
+              {rest.length > 0 && (
+                <div className="part-compare-more">
+                  {rest.map((photo) => (
+                    <PhotoFigure
+                      key={photo.id}
+                      photo={photo}
+                      plant={plant}
+                      sizes="(max-width: 768px) 50vw, 20vw"
+                      showTags={false}
+                      suggestable={suggestable}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {hidden > 0 && (
+                <Link
+                  href={
+                    bothHavePhotos
+                      ? `/compare/${pairSlug}/${partSlug}`
+                      : `/plant/${plant.slug}/${partSlug}`
+                  }
+                  className="link"
+                >
+                  还有 {hidden} 张 ›
+                </Link>
+              )}
             </div>
-            {list.slice(0, maxPhotos).map((photo, i) => (
-              <PhotoFigure
-                key={photo.id}
-                photo={photo}
-                plant={plant}
-                preload={preload && i === 0}
-                sizes="(max-width: 768px) 100vw, 40vw"
-                suggestable={suggestable}
-              />
-            ))}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <p>{text}</p>
 
-      <ul className="tag-diff">
-        <li>
-          <strong>共同特征：</strong>
-          {joinCn(shared)}
-        </li>
-        <li>
-          <strong>{plantA.nameCn}独有：</strong>
-          {joinCn(onlyA)}
-        </li>
-        <li>
-          <strong>{plantB.nameCn}独有：</strong>
-          {joinCn(onlyB)}
-        </li>
-      </ul>
+      {bothHavePhotos && (
+        <ul className="tag-diff">
+          <li>
+            <strong>共同特征：</strong>
+            {joinCn(shared)}
+          </li>
+          <li>
+            <strong>{plantA.nameCn}独有：</strong>
+            {joinCn(onlyA)}
+          </li>
+          <li>
+            <strong>{plantB.nameCn}独有：</strong>
+            {joinCn(onlyB)}
+          </li>
+        </ul>
+      )}
 
-      {headingLevel === "h3" && (
+      {headingLevel === "h3" && bothHavePhotos && (
         <p>
           <Link href={`/compare/${pairSlug}/${partSlug}`} className="link">
             查看{plantA.nameCn}和{plantB.nameCn}
-            {part.noun}的区别（更多对比图）›
+            {part.noun}的区别（全部对比图）›
           </Link>
         </p>
       )}

@@ -96,12 +96,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     })),
 
+    // 对比页展示两种植物的全部实拍图
     ...comparePairs.map((p) => {
-      const parts = p.partOverlaps.map((o) => o.part);
-      const photos = [
-        ...photosOf(p.plantA.slug, parts),
-        ...photosOf(p.plantB.slug, parts),
-      ];
+      const photos = [...photosOf(p.plantA.slug), ...photosOf(p.plantB.slug)];
       return {
         url: `${baseUrl}/compare/${p.slug}`,
         priority: 0.85,

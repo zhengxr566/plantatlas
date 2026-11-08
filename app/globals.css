@@ -848,3 +848,27 @@ a {
   color: #b03a2e;
   font-size: 0.8rem;
 }
+
+/* 同一部位的更多照片：小图两列 */
+.part-compare-more {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.part-compare-more .photo-figure {
+  margin-bottom: 8px;
+}
+
+.part-compare-more .photo-figure img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.part-compare-more .photo-figure figcaption {
+  font-size: 0.75rem;
+}
+
+.part-compare-col .photo-placeholder {
+  margin-bottom: 8px;
+}

@@ -139,7 +139,7 @@ export default async function PartComparePage({ params }: { params: Params }) {
         plantB={plantB}
         photosB={photosB}
         pairSlug={pair.slug}
-        maxPhotos={6}
+        maxPhotos={Infinity}
         headingLevel="h2"
         preload
         suggestable={isSuggestionEnabled()}

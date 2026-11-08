@@ -21,7 +21,7 @@ import {
   loadPhotos,
   type PlantPhoto,
 } from "@/lib/loadPhotos";
-import { getPart } from "@/data/parts";
+import { getCorePartSlugs, getPart, plantParts } from "@/data/parts";
 
 type PlantLike = {
   slug: string;
@@ -313,7 +313,23 @@ export default async function ComparePage({
   const photos2 = photosByPlant.get(plant2.slug) ?? [];
   const hero1 = pickHeroPhoto(photos1);
   const hero2 = pickHeroPhoto(photos2);
-  const comparedParts = (pair?.partOverlaps ?? []).map((o) => o.part);
+  // 树形首图不在下面重复；首图是叶片等其他部位时，仍在对应部位里并排对比
+  const heroIds = [hero1, hero2]
+    .filter((p) => p?.part === "habit")
+    .map((p) => p!.id);
+  const allPhotos = [...photos1, ...photos2];
+  // 核心部位始终列出（缺图显示占位）；树形已作为首图，只有还有其他树形照片时才列出
+  const coreParts = new Set([
+    ...getCorePartSlugs(plant1.division, plant1.className),
+    ...getCorePartSlugs(plant2.division, plant2.className),
+  ]);
+  const shownParts = plantParts
+    .map((p) => p.slug)
+    .filter((part) => {
+      const hasMore = allPhotos.some((p) => p.part === part && !heroIds.includes(p.id));
+      return part === "habit" ? hasMore : hasMore || coreParts.has(part);
+    });
+  const partsWithPhotos = shownParts.filter((part) => allPhotos.some((p) => p.part === part));
 
   const pageUrl = `https://plantatlasworld.com/compare/${slug}`;
 
@@ -340,18 +356,11 @@ export default async function ComparePage({
     description: buildMetaDescription(plant1, plant2),
     about: [plant1.nameCn, plant2.nameCn],
     mainEntityOfPage: pageUrl,
-    ...articleMeta([
-      ...photos1.filter((p) => comparedParts.includes(p.part)).map((p) => p.updated),
-      ...photos2.filter((p) => comparedParts.includes(p.part)).map((p) => p.updated),
-      pair?.note?.updated ?? "",
-    ]),
+    ...articleMeta([...allPhotos.map((p) => p.updated), pair?.note?.updated ?? ""]),
+    // 页面上展示了两种植物的全部实拍图
     image: [
-      ...photos1
-        .filter((p) => comparedParts.includes(p.part) || p === hero1)
-        .map((p) => buildImageObjectJsonLd(p, plant1, pageUrl)),
-      ...photos2
-        .filter((p) => comparedParts.includes(p.part) || p === hero2)
-        .map((p) => buildImageObjectJsonLd(p, plant2, pageUrl)),
+      ...photos1.map((p) => buildImageObjectJsonLd(p, plant1, pageUrl)),
+      ...photos2.map((p) => buildImageObjectJsonLd(p, plant2, pageUrl)),
     ],
   };
 
@@ -435,29 +444,26 @@ export default async function ComparePage({
         {pair?.note?.intro || buildIntro(plant1, plant2)}
       </p>
 
-      {comparedParts.length > 0 && (
-        <>
-          <h2>实拍图片逐部位对比</h2>
-          <p>
-            下面按
-            {comparedParts.map((p) => getPart(p)?.nameCn).join("、")}
-            逐一对比{plant1.nameCn}和{plant2.nameCn}的实拍照片，并标注两者共同和各自独有的识别特征。
-          </p>
-          {comparedParts.map((part, i) => (
-            <div key={part}>
-              <PartCompare
-                partSlug={part}
-                plantA={plant1}
-                photosA={photos1}
-                plantB={plant2}
-                photosB={photos2}
-                pairSlug={slug}
-              />
-              {i === 0 && <AdSlot />}
-            </div>
-          ))}
-        </>
-      )}
+      <h2>各部位对比图</h2>
+      <p>
+        {partsWithPhotos.length > 0
+          ? `下面按${shownParts.map((p) => getPart(p)?.nameCn).join("、")}逐一对比${plant1.nameCn}和${plant2.nameCn}的实拍照片，两者都有照片的部位会标注共同和各自独有的识别特征。`
+          : `${plant1.nameCn}和${plant2.nameCn}各部位的实拍对比图正在整理中，下面先列出识别时需要重点观察的部位。`}
+      </p>
+      {shownParts.map((part, i) => (
+        <div key={part}>
+          <PartCompare
+            partSlug={part}
+            plantA={plant1}
+            photosA={photos1}
+            plantB={plant2}
+            photosB={photos2}
+            pairSlug={slug}
+            excludeIds={heroIds}
+          />
+          {i === 0 && partsWithPhotos.length > 0 && <AdSlot />}
+        </div>
+      ))}
 
       <h2>一句话区别</h2>
       <p>
