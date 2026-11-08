@@ -11,7 +11,11 @@ npm run build
 
 ## 图片管理后台（推荐）
 
-运行 `npm run dev` 后打开 **http://localhost:3000/admin**。后台只在本地开发模式下可用，线上访问是 404。
+**双击项目根目录的 `open-admin.cmd`**（Windows）即可：它会在后台启动本地服务（最小化的 “Plant Atlas dev server” 窗口），
+并用浏览器打开 **http://localhost:3000/admin**；服务已在运行时直接打开页面。关闭那个窗口即停止服务。
+想放在桌面：右键 `open-admin.cmd` →“发送到”→“桌面快捷方式”。
+
+也可以手动运行 `npm run dev` 后打开上面的地址。后台只在本地开发模式下可用，线上访问是 404。
 
 | 页签 | 用途 |
 | --- | --- |
