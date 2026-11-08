@@ -874,142 +874,229 @@ a {
 }
 
 /* =========================
-   Lineage map
+   Lineage tree
 ========================= */
 
-.lineage-map {
+.lineage-tree {
   margin: 16px 0 28px;
 }
 
-.lineage-map-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 6px 16px;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-}
-
-.lineage-map-path button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: #2f6b3a;
-  font: inherit;
-  cursor: pointer;
-}
-
-.lineage-map-path button:hover {
-  text-decoration: underline;
-}
-
-.lineage-map-sep {
-  margin: 0 6px;
-  color: #9aaa9d;
-}
-
-.lineage-map-stats {
-  color: #607464;
-  font-size: 0.85rem;
-}
-
-.lineage-map-search {
+.lineage-tree-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.lineage-map-search input {
+.lineage-tree-search {
+  display: flex;
   flex: 1;
-  min-width: 160px;
-  max-width: 280px;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.lineage-tree-search input {
+  flex: 1;
+  max-width: 260px;
   padding: 6px 10px;
   border: 1px solid #dce8da;
   border-radius: 8px;
   font: inherit;
 }
 
-.lineage-map-search button {
-  padding: 6px 14px;
-  border: 0;
+.lineage-tree-search button,
+.lineage-tree-buttons button {
+  padding: 6px 12px;
+  border: 1px solid #cfe0cf;
   border-radius: 8px;
-  background: #2f6b3a;
-  color: #fff;
+  background: #fff;
+  color: #2f4a33;
   font: inherit;
+  font-size: 0.85rem;
   cursor: pointer;
 }
 
-.lineage-map-error {
+.lineage-tree-search button {
+  border-color: #2f6b3a;
+  background: #2f6b3a;
+  color: #fff;
+}
+
+.lineage-tree-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.lineage-tree-buttons button:hover {
+  border-color: #6b8a6d;
+}
+
+.lineage-tree-error {
   color: #b03a2e;
   font-size: 0.85rem;
 }
 
-.lineage-map-svg {
-  display: block;
-  width: 100%;
-  max-width: 680px;
-  margin: 0 auto;
-  border-radius: 50%;
-  cursor: zoom-out;
+.lineage-tree-canvas {
+  height: min(72vh, 680px);
+  overflow: hidden;
+  border: 1px solid #dce8da;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle, #e3ece1 1px, transparent 1px) 0 0 / 22px 22px,
+    #fbfdfb;
+  cursor: grab;
+  touch-action: none;
   user-select: none;
 }
 
-.lineage-map-svg circle {
-  cursor: pointer;
+.lineage-tree-canvas:active {
+  cursor: grabbing;
 }
 
-.lineage-group:hover {
-  stroke: #6b8a6d;
+.lineage-tree-compact .lineage-tree-canvas {
+  height: 440px;
+}
+
+.lineage-tree-link {
+  fill: none;
+  stroke: #c3d8bf;
   stroke-width: 1.5;
 }
 
-.lineage-leaf:hover {
-  stroke: #2f6b3a;
-  stroke-width: 2.5;
+.lineage-tree-node,
+.lineage-tree-plant {
+  cursor: pointer;
 }
 
-.lineage-label {
-  fill: #1f2a24;
-  font-size: 12px;
-  text-anchor: middle;
-  pointer-events: none;
-  paint-order: stroke;
-  stroke: rgba(255, 255, 255, 0.85);
-  stroke-width: 3px;
-  stroke-linejoin: round;
+.lineage-tree-node:focus-visible {
+  outline: none;
 }
 
-.lineage-label-photo {
+.lineage-tree-node:focus-visible circle {
+  stroke: #d97706;
+}
+
+.lineage-node-open {
   fill: #fff;
-  stroke: rgba(0, 0, 0, 0.55);
+  stroke: #6b8a6d;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 
-.lineage-map-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin-top: 10px;
-  font-size: 0.82rem;
-  color: #607464;
+.lineage-node-closed {
+  fill: #8fb58a;
+  stroke: #fff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 
-.lineage-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: -6px;
-  border: 1px solid #97c459;
-  border-radius: 50%;
-  background: #fff;
+.lineage-node-photo {
+  fill: #2f6b3a;
+  stroke: #fff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-dot-empty {
+  fill: #fff;
+  stroke: #97c459;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
 }
 
 .lineage-dot-photo {
-  border-color: #2f6b3a;
-  background: #6b8a6d;
+  fill: #2f6b3a;
+  stroke: #fff;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-tree-node:hover circle,
+.lineage-tree-plant:hover circle {
+  stroke: #d97706;
+}
+
+.lineage-tree-label {
+  fill: #1f2a24;
+  paint-order: stroke;
+  stroke: #fbfdfb;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.lineage-tree-label-group {
+  font-weight: 600;
+}
+
+.lineage-tree-count {
+  fill: #7a8a7c;
+  font-weight: 400;
+}
+
+.lineage-card {
+  cursor: pointer;
+}
+
+.lineage-card-bg {
+  fill: #fff;
+  stroke: #d5e5d2;
+  stroke-width: 1;
+}
+
+.lineage-card:hover .lineage-card-bg {
+  stroke: #6b8a6d;
+  stroke-width: 2;
+}
+
+.lineage-card-on .lineage-card-bg {
+  stroke: #d97706;
+  stroke-width: 3;
+}
+
+.lineage-card-empty {
+  fill: #eef5ec;
+}
+
+.lineage-card-empty-text {
+  fill: #8a9a8c;
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.lineage-card-name {
+  fill: #1f2a24;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.lineage-card-latin {
+  fill: #6b7a6e;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.lineage-card-meta {
+  fill: #2f6b3a;
+  font-size: 12px;
+}
+
+.lineage-card-text {
+  fill: #3f5a42;
+  font-size: 12px;
+}
+
+.lineage-card-tags {
+  fill: #8a9a8c;
+  font-size: 10.5px;
+}
+
+.lineage-tree-hint {
+  margin-top: 8px;
+  color: #607464;
+  font-size: 0.82rem;
 }
 
 .lineage-directory details {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import LineageMap from "@/app/components/LineageMap";
+import LineageTree from "@/app/components/LineageTree";
 import { buildLineageTree, type LineageNode } from "@/lib/lineage";
 import { loadPhotos } from "@/lib/loadPhotos";
 import { loadPlants } from "@/lib/loadPlants";
@@ -10,7 +10,7 @@ import { loadPlants } from "@/lib/loadPlants";
 export const metadata: Metadata = {
   title: "植物谱系地图｜常见植物的纲、目、科、属分类关系一览",
   description:
-    "用可缩放的谱系地图浏览常见植物的分类关系：从裸子植物、被子植物到纲、目、科、属和种，点击即可查看每种植物的识别特征和实拍图。",
+    "用可缩放的谱系树浏览常见植物的分类关系：从裸子植物、被子植物到纲、目、科、属和种，放大即可看到每种植物的简介名片和实拍图。",
   alternates: { canonical: "https://plantatlasworld.com/lineage" },
 };
 
@@ -71,12 +71,12 @@ export default function LineagePage() {
 
       <h1>植物谱系地图</h1>
       <p>
-        本站收录的 {plants.length} 种植物按“类群 › 纲 › 目 › 科 › 属 › 种”的分类关系排列成一张地图。
-        圆圈越靠内层，亲缘关系越近；同一个属的植物聚在一起，往往也是最容易混淆的组合。
-        有实拍图的植物会直接显示照片。
+        本站收录的 {plants.length} 种植物按“类群 › 纲 › 目 › 科 › 属 › 种”的分类关系排成一棵谱系树。
+        从左往右，分支越靠右，亲缘关系越近；同一个属的植物排在一起，往往也是最容易混淆的组合。
+        点击节点展开下一级，放大后每种植物会显示为一张简介名片，有实拍图的会直接显示照片。
       </p>
 
-      <LineageMap data={tree} />
+      <LineageTree data={tree} />
 
       <h2>分类目录</h2>
       <div className="lineage-directory">

@@ -5,7 +5,7 @@ import { loadPlants } from "@/lib/loadPlants";
 import { taxonomyRobots } from "@/lib/taxonomy";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import LineageMap from "@/app/components/LineageMap";
+import LineageTree from "@/app/components/LineageTree";
 import { buildLineageTree, findLineageNode } from "@/lib/lineage";
 import { loadPhotos } from "@/lib/loadPhotos";
 import { taxonomyCrumbs } from "@/lib/structuredData";
@@ -94,7 +94,7 @@ export default async function FamilyPage({
         但通常可以通过科属关系、叶片、花、果实和树皮特征进行归类与识别。
       </p>
 
-      {list.length >= 2 && lineageNode && <LineageMap data={lineageNode} compact />}
+      {list.length >= 2 && lineageNode && <LineageTree data={lineageNode} compact />}
 
       <h2>{first.family}的分类位置</h2>
       <div className="lineage-horizontal">
@@ -190,4 +190,4 @@ export default async function FamilyPage({
       </p>
     </AtlasLayout>
   );
-}
+}
