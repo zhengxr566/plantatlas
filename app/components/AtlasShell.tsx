@@ -2,18 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Header from "./Header";
+import type { SearchEntry } from "./SiteSearch";
+import { SidebarContext } from "./sidebarContext";
 import { isAboutReady } from "@/data/about";
 
-// 页面外框（客户端）：负责侧栏宽度拖拽。侧栏内容由服务端的 AtlasLayout 传入。
+// 页面外框（客户端）：负责侧栏宽度拖拽和手机上的侧栏抽屉。侧栏内容由服务端的 AtlasLayout 传入。
 export default function AtlasShell({
   sidebar,
+  searchEntries,
   children,
 }: {
   sidebar: React.ReactNode;
+  searchEntries: SearchEntry[];
   children: React.ReactNode;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // 切换页面时自动关闭抽屉
+  const pathname = usePathname();
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setMenuOpen(false);
+  }
 
   function startResize(e: React.MouseEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -42,8 +56,15 @@ export default function AtlasShell({
   }
 
   return (
-    <>
-      <Header />
+    <SidebarContext.Provider value={{ open: menuOpen, setOpen: setMenuOpen }}>
+      <Header
+        searchEntries={searchEntries}
+        menuOpen={menuOpen}
+        onMenuToggle={() => setMenuOpen((v) => !v)}
+      />
+      {menuOpen && (
+        <div className="drawer-backdrop" aria-hidden="true" onClick={() => setMenuOpen(false)} />
+      )}
 
       <main className="page">
         <div
@@ -84,6 +105,6 @@ export default function AtlasShell({
           </>
         )}
       </footer>
-    </>
+    </SidebarContext.Provider>
   );
 }

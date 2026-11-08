@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSidebar } from "./sidebarContext";
 
 type PlantLink = { slug: string; nameCn: string; nameLatin: string };
 
@@ -22,18 +23,11 @@ export default function LineageSidebar({
   tree: SidebarTree;
 }) {
   const [openAll, setOpenAll] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  // 手机上由顶部菜单按钮打开（状态在 AtlasShell 中）
+  const { open: mobileOpen } = useSidebar();
 
   return (
     <>
-      <button
-        type="button"
-        className="sidebar-mobile-toggle"
-        onClick={() => setMobileOpen((value) => !value)}
-      >
-        {mobileOpen ? "收起谱系导航" : "展开谱系导航"}
-      </button>
-
       <aside
         className={
           mobileOpen
@@ -41,6 +35,14 @@ export default function LineageSidebar({
             : "lineage-sidebar"
         }
       >
+        {/* 手机上顶部导航隐藏，入口放在抽屉最上方 */}
+        <nav className="sidebar-mobile-nav" aria-label="主导航">
+          <Link href="/">首页</Link>
+          <Link href="/lineage">谱系地图</Link>
+          <Link href="/compare">植物对比</Link>
+          <Link href="/identify">植物识别</Link>
+        </nav>
+
         <div className="sidebar-section first">
           <h3>常见植物</h3>
           <ul>

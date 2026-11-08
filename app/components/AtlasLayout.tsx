@@ -1,5 +1,6 @@
 import AtlasShell from "./AtlasShell";
 import LineageSidebar, { type SidebarTree } from "./LineageSidebar";
+import type { SearchEntry } from "./SiteSearch";
 import { identifyPages } from "@/data/identify";
 import { generateComparePairs } from "@/lib/generateComparePairs";
 import { loadPhotos } from "@/lib/loadPhotos";
@@ -52,9 +53,35 @@ function buildSidebarData() {
   };
 }
 
+// 顶部搜索的索引：植物（中文名 + 学名 + 科）、属、科
+function buildSearchEntries(): SearchEntry[] {
+  const plants = loadPlants();
+  const entries: SearchEntry[] = plants.map((p) => ({
+    name: p.nameCn,
+    sub: `${p.nameLatin} · ${p.family}`,
+    href: `/plant/${p.slug}`,
+    kind: "plant",
+  }));
+  const seen = new Set<string>();
+  plants.forEach((p) => {
+    if (p.genusSlug && !seen.has(`g:${p.genusSlug}`)) {
+      seen.add(`g:${p.genusSlug}`);
+      entries.push({ name: p.genus, sub: p.family, href: `/genus/${p.genusSlug}`, kind: "genus" });
+    }
+    if (p.familySlug && !seen.has(`f:${p.familySlug}`)) {
+      seen.add(`f:${p.familySlug}`);
+      entries.push({ name: p.family, sub: p.order, href: `/family/${p.familySlug}`, kind: "family" });
+    }
+  });
+  return entries;
+}
+
 export default function AtlasLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AtlasShell sidebar={<LineageSidebar {...buildSidebarData()} />}>
+    <AtlasShell
+      sidebar={<LineageSidebar {...buildSidebarData()} />}
+      searchEntries={buildSearchEntries()}
+    >
       {children}
     </AtlasShell>
   );

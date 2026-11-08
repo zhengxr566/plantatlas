@@ -307,11 +307,24 @@ export default async function PlantPage({
 
   const comparePairs = getPairsForPlant(generateComparePairs(), plant.slug);
 
-  const tags = toList(plant.tags);
   const usage = toList(plant.usage);
-  const relatedNames = toList((plant as any).relatives ?? plant.similar);
+  // 分类名称（纲/目/科/属）不作为识别标签显示
+  const taxa = [plant.division, plant.className, plant.order, plant.family, plant.genus];
+  const featureTags = toList(plant.tags).filter(
+    (t) => !taxa.includes(t) && !/[纲目科属]$/.test(t)
+  );
+  // 同科中不同属的植物（同属的单独列出）
+  const otherFamilyPlants = sameFamilyPlants.filter((p) => p.genusSlug !== plant.genusSlug);
 
-  const identificationTexts = buildIdentificationText(plant);
+  // 识别要点：叶、花、果、树皮，没有内容的不显示
+  const keyRows = [
+    { label: "叶片", value: plant.leaf },
+    { label: "花", value: plant.flower },
+    { label: "果实 / 种子", value: plant.fruit },
+    { label: "树皮", value: plant.bark },
+  ].filter((row): row is { label: string; value: string } => Boolean(row.value));
+  // buildIdentificationText 前几条与上面的字段重复，只保留后面基于标签的提示
+  const identifyTips = buildIdentificationText(plant).slice(keyRows.length);
   const seasonTexts = buildSeasonText(plant);
   const usageTexts = buildUsageText(plant);
 
@@ -349,6 +362,22 @@ export default async function PlantPage({
 
       <h1>{plant.nameCn}</h1>
       <p className="latin">{plant.nameLatin}</p>
+
+      <div className="plant-facts">
+        <Link href={`/family/${plant.familySlug}`} className="plant-fact">
+          {plant.family}
+        </Link>
+        <Link href={`/genus/${plant.genusSlug}`} className="plant-fact">
+          {plant.genus}
+        </Link>
+        {plant.habit && <span className="plant-fact">{plant.habit}</span>}
+        {photos.length > 0 && (
+          <a href="#plant-photos" className="plant-fact plant-fact-photo">
+            {photos.length} 张实拍
+          </a>
+        )}
+      </div>
+
       {heroPhoto && (
         <div className="plant-hero-image">
           <Image
@@ -362,8 +391,33 @@ export default async function PlantPage({
         </div>
       )}
 
-      <h2>{plant.nameCn}各部位图片</h2>
-      <div className="photo-gallery">
+      <p className="plant-intro">{buildPlantIntro(plant)}</p>
+
+      {(keyRows.length > 0 || identifyTips.length > 0) && (
+        <>
+          <h2>如何识别{plant.nameCn}</h2>
+          {keyRows.length > 0 && (
+            <dl className="plant-keys">
+              {keyRows.map((row) => (
+                <div key={row.label} className="plant-key">
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {identifyTips.length > 0 && (
+            <ul className="plant-tips">
+              {identifyTips.map((tip) => (
+                <li key={tip}>{tip}</li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      <h2 id="plant-photos">{plant.nameCn}各部位图片</h2>
+      <div className="photo-gallery plant-part-gallery">
         {shownParts.map((part) => {
           const partPhotos = photos.filter((p) => p.part === part.slug);
           return (
@@ -373,7 +427,7 @@ export default async function PlantPage({
                   <PhotoFigure
                     photo={partPhotos[0]}
                     plant={plant}
-                    sizes="(max-width: 768px) 100vw, 33vw"
+                    sizes="(max-width: 768px) 50vw, 33vw"
                     showTags={false}
                   />
                   <Link
@@ -392,221 +446,131 @@ export default async function PlantPage({
         })}
       </div>
       {photos.length > 0 && <AdSlot />}
-      <h2>基础信息</h2>
-      <div className="info-inline">
-        <div className="info-item">
-          <span className="info-label">科：</span>
-          <Link href={`/family/${plant.familySlug}`} className="link">
-            {plant.family}
-          </Link>
-        </div>
 
-        <div className="info-item">
-          <span className="info-label">属：</span>
-          <Link href={`/genus/${plant.genusSlug}`} className="link">
-            {plant.genus}
-          </Link>
-        </div>
-
-        <div className="info-item">
-          <span className="info-label">目：</span>
-          <Link href={`/order/${plant.orderSlug}`} className="link">
-            {plant.order}
-          </Link>
-        </div>
-
-        <div className="info-item">
-          <span className="info-label">纲：</span>
-          <Link href={`/class/${plant.classSlug}`} className="link">
-            {plant.className}
-          </Link>
-        </div>
-
-        <div className="info-item">
-          <span className="info-label">类群：</span>
-          {plant.division}
-        </div>
-
-        {plant.habit && (
-          <div className="info-item">
-            <span className="info-label">类型：</span>
-            {plant.habit}
-          </div>
-        )}
-      </div>
-
-      <h2>谱系位置</h2>
-      <div className="lineage-horizontal">
-        <span className="lineage-node">{plant.kingdom}</span>
-        <span className="lineage-arrow">›</span>
-
-        <span className="lineage-node">{plant.division}</span>
-        <span className="lineage-arrow">›</span>
-
-        <Link href={`/class/${plant.classSlug}`} className="lineage-node link">
-          {plant.className}
-        </Link>
-        <span className="lineage-arrow">›</span>
-
-        <Link href={`/order/${plant.orderSlug}`} className="lineage-node link">
-          {plant.order}
-        </Link>
-        <span className="lineage-arrow">›</span>
-
-        <Link href={`/family/${plant.familySlug}`} className="lineage-node link">
-          {plant.family}
-        </Link>
-        <span className="lineage-arrow">›</span>
-
-        <Link href={`/genus/${plant.genusSlug}`} className="lineage-node link">
-          {plant.genus}
-        </Link>
-        <span className="lineage-arrow">›</span>
-
-        <span className="lineage-node">{plant.nameCn}</span>
-      </div>
-
-      <h2>近缘或相似植物</h2>
-      <p>
-        {relatedNames.length > 0
-          ? `${plant.nameCn}的近缘或常见相似植物包括：${relatedNames.join(
-              "、"
-            )}。这些植物可能在叶片、树形、季节变化或生长环境上与${plant.nameCn}存在相似之处。`
-          : "暂无近缘或相似植物数据。"}
-      </p>
-
-      <h2>同科植物</h2>
-      {sameFamilyPlants.length > 0 ? (
-        <ul>
-          {sameFamilyPlants.slice(0, 12).map((p) => (
-            <li key={p.slug}>
-              <Link href={`/plant/${p.slug}`} className="link">
-                {p.nameCn}
-              </Link>
-              <span className="meta"> · {p.nameLatin} · {p.genus}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="meta">暂无同科植物数据。</p>
-      )}
-
-      <h2>同属植物</h2>
-      {sameGenusPlants.length > 0 ? (
-        <ul>
-          {sameGenusPlants.slice(0, 12).map((p) => (
-            <li key={p.slug}>
-              <Link href={`/plant/${p.slug}`} className="link">
-                {p.nameCn}
-              </Link>
-              <span className="meta"> · {p.nameLatin}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="meta">暂无同属植物数据。</p>
-      )}
-
-      <h2>常见对比</h2>
-      {comparePairs.length > 0 ? (
-        <ul>
-          {comparePairs.map((pair) => (
-            <li key={pair.slug}>
-              <Link href={`/compare/${pair.slug}`} className="link">
-                {pair.title}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="meta">
-          当前暂无常见对比。后续可以通过 similar 字段补充相似植物。
-        </p>
-      )}
-
-      <p>{buildPlantIntro(plant)}</p>
-
-      <h2>{plant.nameCn}是什么植物</h2>
-      <p>
-        {plant.nameCn}在分类上属于{plant.division}、
-        <Link href={`/class/${plant.classSlug}`} className="link">
-          {plant.className}
-        </Link>
-        、
-        <Link href={`/order/${plant.orderSlug}`} className="link">
-          {plant.order}
-        </Link>
-        、
-        <Link href={`/family/${plant.familySlug}`} className="link">
-          {plant.family}
-        </Link>
-        、
-        <Link href={`/genus/${plant.genusSlug}`} className="link">
-          {plant.genus}
-        </Link>
-        。
-        {plant.habit ? ` 它的生活型为${plant.habit}。` : ""}
-        通过科属关系可以判断它与同科、同属植物之间的亲缘关系，
-        也能帮助区分外观相似但分类不同的植物。
-      </p>
-
-      <h2>{plant.nameCn}的主要特征</h2>
-      <p>
-        识别{plant.nameCn}时，最值得观察的是叶片、花、果实和树皮。
-        {plant.leaf ? ` 叶片方面，${plant.leaf}。` : ""}
-        {plant.flower ? ` 花部特征为${plant.flower}。` : ""}
-        {plant.fruit ? ` 果实或种子特征为${plant.fruit}。` : ""}
-        {plant.bark ? ` 树皮通常表现为${plant.bark}。` : ""}
-      </p>
-
-      <h2>如何识别{plant.nameCn}</h2>
-      <ol>
-        {identificationTexts.map((text, index) => (
-          <li key={index}>{text}</li>
-        ))}
-      </ol>
-
-      <h2>季节变化与观察时间</h2>
-      {seasonTexts.length > 0 ? (
-        seasonTexts.map((text, index) => <p key={index}>{text}</p>)
-      ) : (
-        <p>
-          观察{plant.nameCn}时，可以结合春季新叶、花期、结果期和秋冬树形变化。
-          不同季节可观察到的特征不同，建议结合多个部位判断。
-        </p>
-      )}
-
-      <h2>生长环境与常见用途</h2>
-      <p>
-        {plant.environment
-          ? `${plant.nameCn}的生长环境特点是：${plant.environment}。`
-          : `${plant.nameCn}的生长环境资料暂不完整。`}
-      </p>
-
-      {usageTexts.map((text, index) => (
-        <p key={index}>{text}</p>
-      ))}
-
-      {usage.length > 0 && (
+      {comparePairs.length > 0 && (
         <>
-          <h3>常见用途</h3>
-          <ul>
-            {usage.map((item) => (
-              <li key={item}>{item}</li>
+          <h2>{plant.nameCn}和哪些植物容易混淆</h2>
+          <ul className="plant-link-chips">
+            {comparePairs.map((pair) => {
+              const other = pair.plantA.slug === plant.slug ? pair.plantB : pair.plantA;
+              return (
+                <li key={pair.slug}>
+                  <Link href={`/compare/${pair.slug}`} className="plant-link-chip">
+                    <strong>{other.nameCn}</strong>
+                    <span>看区别 ›</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+
+      {sameGenusPlants.length > 0 && (
+        <>
+          <h2>同属的其他植物</h2>
+          <ul className="plant-link-chips">
+            {sameGenusPlants.slice(0, 12).map((p) => (
+              <li key={p.slug}>
+                <Link href={`/plant/${p.slug}`} className="plant-link-chip">
+                  <strong>{p.nameCn}</strong>
+                  <span>{p.nameLatin}</span>
+                </Link>
+              </li>
             ))}
           </ul>
         </>
       )}
 
-      <h2>识别标签</h2>
-      {tags.length > 0 ? (
-        <p>
-          {plant.nameCn}的标签包括：{tags.join("、")}。
-          这些标签可以用于植物识别页、相似植物对比页和分类聚合页，
-          帮助从外观、生态和用途角度理解这种植物。
-        </p>
-      ) : (
-        <p>当前暂无标签数据。</p>
+      {otherFamilyPlants.length > 0 && (
+        <>
+          <h2>{plant.family}的其他植物</h2>
+          <ul className="plant-link-chips">
+            {otherFamilyPlants.slice(0, 12).map((p) => (
+              <li key={p.slug}>
+                <Link href={`/plant/${p.slug}`} className="plant-link-chip">
+                  <strong>{p.nameCn}</strong>
+                  <span>{p.genus}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      <h2>{plant.nameCn}是什么植物</h2>
+      <div className="lineage-horizontal">
+        <span className="lineage-node">{plant.division}</span>
+        <span className="lineage-arrow">›</span>
+        <Link href={`/class/${plant.classSlug}`} className="lineage-node link">
+          {plant.className}
+        </Link>
+        <span className="lineage-arrow">›</span>
+        <Link href={`/order/${plant.orderSlug}`} className="lineage-node link">
+          {plant.order}
+        </Link>
+        <span className="lineage-arrow">›</span>
+        <Link href={`/family/${plant.familySlug}`} className="lineage-node link">
+          {plant.family}
+        </Link>
+        <span className="lineage-arrow">›</span>
+        <Link href={`/genus/${plant.genusSlug}`} className="lineage-node link">
+          {plant.genus}
+        </Link>
+        <span className="lineage-arrow">›</span>
+        <span className="lineage-node">{plant.nameCn}</span>
+      </div>
+      <p>
+        {plant.nameCn}是{plant.division}中{plant.family}
+        {plant.genus}的植物
+        {plant.habit ? `，生活型为${plant.habit}` : ""}。
+        在<Link href="/lineage" className="link">谱系地图</Link>
+        中可以看到它和同科、同属植物的关系。
+      </p>
+
+      {seasonTexts.length > 0 && (
+        <>
+          <h2>季节变化与观察时间</h2>
+          {seasonTexts.map((text, index) => (
+            <p key={index}>{text}</p>
+          ))}
+        </>
+      )}
+
+      {(plant.environment || usageTexts.length > 0 || usage.length > 0) && (
+        <>
+          <h2>生长环境与常见用途</h2>
+          {plant.environment && (
+            <p>
+              {plant.nameCn}的生长环境特点是：{plant.environment}。
+            </p>
+          )}
+          {usageTexts.map((text, index) => (
+            <p key={index}>{text}</p>
+          ))}
+          {usage.length > 0 && (
+            <div className="photo-tags plant-usage">
+              {usage.map((item) => (
+                <span key={item} className="photo-tag">
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {featureTags.length > 0 && (
+        <>
+          <h2>识别标签</h2>
+          <div className="photo-tags">
+            {featureTags.map((tag) => (
+              <span key={tag} className="photo-tag">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </>
       )}
     </AtlasLayout>
   );
