@@ -96,6 +96,35 @@ export default function PlantsTab({
     return [...map.values()].sort((a, b) => a.family.localeCompare(b.family, "zh"));
   }, [rows]);
 
+  // “相似植物”里写了、但 plants.csv 还没有的植物：值得补充的清单
+  const missing = useMemo(() => {
+    const names = new Set(rows.map((r) => r.nameCn));
+    const map = new Map<string, Row[]>();
+    rows.forEach((r) =>
+      (r.similar || "")
+        .split("|")
+        .filter((n) => n && !names.has(n))
+        .forEach((n) => map.set(n, [...(map.get(n) ?? []), r]))
+    );
+    return [...map].sort((a, b) => b[1].length - a[1].length);
+  }, [rows]);
+
+  // 新建被引用的植物：中文名、相似植物和分类先复制自引用它的植物
+  function createMissing(name: string, ref: Row) {
+    if (!confirmDiscard()) return;
+    const taxonomyKeys = ["division", "className", "classSlug", "order", "orderSlug", "family", "familySlug", "genus", "genusSlug"];
+    const row = emptyRow(columns);
+    taxonomyKeys.forEach((k) => (row[k] = ref[k]));
+    row.nameCn = name;
+    row.similar = ref.nameCn;
+    setEditing({ row, isNew: true, autoSlug: true });
+    setDirty(true);
+    setMessage({
+      type: "ok",
+      text: `分类信息复制自${ref.nameCn}（${ref.genus}），请确认是否正确，并填写学名和描述`,
+    });
+  }
+
   const photoCount = (slug: string) => data.photos.filter((p) => p.plant === slug).length;
 
   function confirmDiscard() {
@@ -180,6 +209,29 @@ export default function PlantsTab({
         </button>
         <span className="muted">{list.length} 种</span>
       </div>
+
+      {missing.length > 0 && (
+        <details className="panel missing-plants">
+          <summary>
+            被引用但还没收录的植物（{missing.length}）
+            <span className="muted"> — 出现在其他植物的“相似植物”中，收录后会自动生成对比页</span>
+          </summary>
+          <div className="missing-list">
+            {missing.map(([name, refs]) => (
+              <button
+                key={name}
+                type="button"
+                className="chip"
+                title={`被 ${refs.map((r) => r.nameCn).join("、")} 引用`}
+                onClick={() => createMissing(name, refs[0])}
+              >
+                + {name}
+                <span className="muted"> · {refs.map((r) => r.nameCn).join("、")}</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
 
       <div className="library-layout">
         <ul className="pair-list">

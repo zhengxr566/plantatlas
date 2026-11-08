@@ -6,6 +6,7 @@ export type AdminPlant = {
   nameLatin: string;
   family: string;
   division: string;
+  className: string;
 };
 
 export type AdminPart = {

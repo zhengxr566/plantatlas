@@ -724,3 +724,50 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---------- 对比自动化 ---------- */
+
+.admin .pair-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin .pair-hints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px 4px;
+}
+
+.admin .candidate-row {
+  cursor: default;
+}
+
+.admin .candidate-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.admin .draft-btn {
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.admin .missing-plants {
+  margin-bottom: 16px;
+}
+
+.admin .missing-plants summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin .missing-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}

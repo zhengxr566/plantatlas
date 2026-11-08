@@ -167,7 +167,14 @@ export default function AdminApp() {
             />
           </div>
           <div hidden={tab !== "compare"}>
-            <CompareTab data={data} onChanged={refresh} />
+            <CompareTab
+              data={data}
+              onChanged={refresh}
+              onPick={(plant, part) => {
+                setPreset({ plant, part });
+                setTab("upload");
+              }}
+            />
           </div>
           <div hidden={tab !== "plants"}>
             <PlantsTab data={data} onChanged={refresh} onAddTag={addTag} />

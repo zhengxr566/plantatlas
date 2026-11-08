@@ -11,6 +11,7 @@ export const GET = adminRoute(async () => ({
     nameLatin: p.nameLatin,
     family: p.family,
     division: p.division,
+    className: p.className,
   })),
   parts: plantParts,
   tagGroups: readTagGroups(),
