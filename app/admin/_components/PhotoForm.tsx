@@ -2,7 +2,7 @@
 
 import PlantPicker from "./PlantPicker";
 import TagPicker from "./TagPicker";
-import { SEASONS, type AdminData, type PhotoMeta } from "./types";
+import { SEASONS, partTagsFor, type AdminData, type PhotoMeta } from "./types";
 
 // 上传和编辑共用的图片信息表单
 export default function PhotoForm({
@@ -21,10 +21,21 @@ export default function PhotoForm({
   // 打开“新增植物”对话框，返回新植物的 slug（取消时为 null）
   onCreatePlant?: (name: string) => Promise<string | null>;
 }) {
-  const set = <K extends keyof PhotoMeta>(key: K, value: PhotoMeta[K]) =>
-    onChange({ ...meta, [key]: value });
   const plant = data.plants.find((p) => p.slug === meta.plant);
   const part = data.parts.find((p) => p.slug === meta.part);
+  const autoTags = partTagsFor(plant, meta.part);
+
+  // 换植物或部位时：去掉上一组自动预选的标签，换成新的；手动加的标签保留
+  const set = <K extends keyof PhotoMeta>(key: K, value: PhotoMeta[K]) => {
+    const next = { ...meta, [key]: value };
+    if (key === "plant" || key === "part") {
+      const nextPlant = data.plants.find((p) => p.slug === next.plant);
+      const nextAuto = partTagsFor(nextPlant, next.part);
+      const kept = meta.tags.filter((t) => !autoTags.includes(t));
+      next.tags = [...kept, ...nextAuto.filter((t) => !kept.includes(t))];
+    }
+    onChange(next);
+  };
 
   return (
     <div className="photo-form">
@@ -65,6 +76,11 @@ export default function PhotoForm({
         <>
           <div className="field">
             <span>识别标签</span>
+            {autoTags.length > 0 && (
+              <span className="muted">
+                已按植物资料预选{part?.nameCn ?? ""}相关的标签，请去掉这张照片里看不出来的
+              </span>
+            )}
             <TagPicker
               value={meta.tags}
               onChange={(v) => set("tags", v)}

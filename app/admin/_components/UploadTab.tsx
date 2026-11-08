@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import CropDialog, { type CropRect } from "./CropDialog";
 import PhotoForm from "./PhotoForm";
-import { api, type AdminData, type PhotoMeta, type PhotoRow } from "./types";
+import { api, partTagsFor, type AdminData, type PhotoMeta, type PhotoRow } from "./types";
 
 type QueueItem = {
   id: string;
@@ -62,7 +62,15 @@ export default function UploadTab({
         id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
         file,
         preview: URL.createObjectURL(file),
-        meta: { ...defaults, tags: [], caption: "" },
+        meta: {
+          ...defaults,
+          // 按默认的植物和部位预选标签
+          tags: partTagsFor(
+            data.plants.find((p) => p.slug === defaults.plant),
+            defaults.part
+          ),
+          caption: "",
+        },
         status: "pending" as const,
       })),
     ]);
