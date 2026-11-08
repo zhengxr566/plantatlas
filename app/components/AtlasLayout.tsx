@@ -53,12 +53,13 @@ function buildSidebarData() {
   };
 }
 
-// 顶部搜索的索引：植物（中文名 + 学名 + 科）、属、科
+// 顶部搜索的索引：植物（中文名 + 别名 + 学名 + 科）、属、科
 function buildSearchEntries(): SearchEntry[] {
   const plants = loadPlants();
   const entries: SearchEntry[] = plants.map((p) => ({
     name: p.nameCn,
     sub: `${p.nameLatin} · ${p.family}`,
+    aliases: p.aliases,
     href: `/plant/${p.slug}`,
     kind: "plant",
   }));

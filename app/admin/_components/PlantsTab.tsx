@@ -55,6 +55,7 @@ export default function PlantsTab({
       (r) =>
         !q ||
         r.nameCn.includes(q) ||
+        (r.aliases || "").includes(q) ||
         r.nameLatin.toLowerCase().includes(q) ||
         r.family.includes(q) ||
         r.genus.includes(q) ||
@@ -225,6 +226,14 @@ export default function PlantsTab({
                 <input value={row.slug} readOnly={!editing.isNew} onChange={(e) => set("slug", e.target.value)} />
               </label>
             </div>
+            <label className="field">
+              <span>别名（俗名、旧名等，用 、 或 | 分隔；会显示在植物页并参与搜索）</span>
+              <input
+                value={(row.aliases || "").split("|").join("、")}
+                placeholder="例如 白果树、公孙树"
+                onChange={(e) => set("aliases", e.target.value.replace(/[、,，]/g, "|"))}
+              />
+            </label>
             {row.slug && <p className="muted">页面地址：/plant/{row.slug}</p>}
 
             <h3>分类</h3>

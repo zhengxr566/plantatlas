@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadPlants } from "@/lib/loadPlants";
+import { loadPlants, type Plant } from "@/lib/loadPlants";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { articleMeta, taxonomyCrumbs } from "@/lib/structuredData";
@@ -43,11 +43,23 @@ function sentenceList(items: string[]) {
   return items.filter(Boolean).join("、");
 }
 
+// “，又名白果树、公孙树，”——让搜索别名的读者确认找对了植物
+function aliasClause(plant: Plant) {
+  const aliases = toList(plant.aliases);
+  return aliases.length > 0 ? `，又名${aliases.join("、")}，` : "";
+}
+
+// 标题里放第一个别名，例如“银杏（白果树）”
+function titleName(plant: Plant) {
+  const [alias] = toList(plant.aliases);
+  return alias ? `${plant.nameCn}（${alias}）` : plant.nameCn;
+}
+
 function buildPlantIntro(plant: any) {
   const tags = toList(plant.tags);
 
   return [
-    `${plant.nameCn}（${plant.nameLatin}）是${plant.family}${plant.genus}植物。`,
+    `${plant.nameCn}（${plant.nameLatin}）${aliasClause(plant)}是${plant.family}${plant.genus}植物。`,
     plant.habit ? `从生活型来看，它属于${plant.habit}。` : "",
     plant.leaf ? `它最容易观察的特征是${plant.leaf}。` : "",
     plant.environment ? `在生长环境上，${plant.environment}。` : "",
@@ -201,7 +213,7 @@ function buildPlantTitle(plant: any) {
   }
 
   if (highlights.length > 0) {
-    return `${plant.nameCn}｜${highlights
+    return `${titleName(plant)}｜${highlights
       .slice(0, 2)
       .join("、")}与${getPlantSeoTopic(plant)}`;
   }
@@ -239,7 +251,9 @@ function buildPlantDescription(plant: any) {
 
   const detail = parts.slice(0, 4).join("，");
 
-  return `${plant.nameCn}属于${plant.family}${plant.genus}。${detail}。`;
+  const aliases = toList(plant.aliases);
+  const aka = aliases.length > 0 ? `（又名${aliases.slice(0, 2).join("、")}）` : "";
+  return `${plant.nameCn}${aka}属于${plant.family}${plant.genus}。${detail}。`;
 }
 export async function generateMetadata({
   params,
@@ -338,7 +352,7 @@ export default async function PlantPage({
     about: {
       "@type": "Thing",
       name: plant.nameCn,
-      alternateName: plant.nameLatin,
+      alternateName: [plant.nameLatin, ...plant.aliases],
     },
     image: photos.map((p) =>
       buildImageObjectJsonLd(
@@ -362,6 +376,11 @@ export default async function PlantPage({
 
       <h1>{plant.nameCn}</h1>
       <p className="latin">{plant.nameLatin}</p>
+      {plant.aliases.length > 0 && (
+        <p className="plant-aliases">
+          别名：{plant.aliases.join("、")}
+        </p>
+      )}
 
       <div className="plant-facts">
         <Link href={`/family/${plant.familySlug}`} className="plant-fact">

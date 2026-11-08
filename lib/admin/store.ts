@@ -404,7 +404,7 @@ export function addTag(tag: string, groupName = CUSTOM_GROUP) {
 
 const plantsCsv = path.join(root, "data", "plants.csv");
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const LIST_FIELDS = ["usage", "tags", "similar"];
+const LIST_FIELDS = ["aliases", "usage", "tags", "similar"];
 const REQUIRED_FIELDS: Record<string, string> = {
   slug: "网址标识",
   nameCn: "中文名",

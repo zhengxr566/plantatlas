@@ -15,6 +15,7 @@ export type LineageNode = {
   // 种的简介名片
   card?: {
     latin: string;
+    aliases: string[];
     habit: string;
     family: string;
     summary: string;
@@ -84,6 +85,7 @@ export function buildLineageTree(plants: Plant[], photos: PlantPhoto[]): Lineage
       photoCount: plantPhotos.length,
       card: {
         latin: plant.nameLatin,
+        aliases: plant.aliases,
         habit: plant.habit ?? "",
         family: plant.family,
         summary: summarize(plant),

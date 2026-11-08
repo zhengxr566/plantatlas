@@ -401,6 +401,12 @@ a {
   color: #68786c;
 }
 
+.plant-aliases {
+  margin-top: -4px;
+  color: #4f6453;
+  font-size: 13px;
+}
+
 .meta {
   font-size: 12.5px;
   color: #6f7d71;

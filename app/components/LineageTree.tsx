@@ -219,7 +219,8 @@ function idsToDepth(node: LineageNode, id: string, depth: number, out = new Set<
 function findPath(root: LineageNode, query: string): { path: string[]; node: LineageNode } | null {
   const q = query.trim().toLowerCase();
   if (!q) return null;
-  const names = (n: LineageNode) => [n.name.toLowerCase(), (n.card?.latin ?? "").toLowerCase()];
+  const names = (n: LineageNode) =>
+    [n.name, n.card?.latin ?? "", ...(n.card?.aliases ?? [])].map((s) => s.toLowerCase());
   const tests = [
     (n: LineageNode) => names(n).includes(q),
     (n: LineageNode) => names(n).some((s) => s.length > 0 && s.includes(q)),
@@ -335,6 +336,7 @@ export default function LineageTree({
     const names = new Set<string>();
     const walk = (n: LineageNode) => {
       if (n !== data) names.add(n.name);
+      n.card?.aliases.forEach((a) => names.add(a));
       n.children?.forEach(walk);
     };
     walk(data);

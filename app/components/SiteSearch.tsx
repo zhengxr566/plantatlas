@@ -8,6 +8,8 @@ export type SearchEntry = {
   name: string;
   // 学名或上级分类，显示在名称后面并参与搜索
   sub: string;
+  // 别名：搜索别名时也能找到，并在结果中注明“又名”
+  aliases?: string[];
   href: string;
   kind: "plant" | "genus" | "family";
 };
@@ -38,26 +40,31 @@ export default function SiteSearch({
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    const score = (e: SearchEntry) => {
+    // 名称优先，其次别名，最后学名和上级分类
+    const score = (e: SearchEntry): { s: number; alias?: string } => {
       const name = e.name.toLowerCase();
       const sub = e.sub.toLowerCase();
-      if (name === q) return 0;
-      if (name.startsWith(q)) return 1;
-      if (name.includes(q)) return 2;
-      if (sub.startsWith(q)) return 3;
-      if (sub.includes(q)) return 4;
-      return 99;
+      if (name === q) return { s: 0 };
+      const exactAlias = e.aliases?.find((a) => a.toLowerCase() === q);
+      if (exactAlias) return { s: 0.5, alias: exactAlias };
+      if (name.startsWith(q)) return { s: 1 };
+      if (name.includes(q)) return { s: 2 };
+      const alias = e.aliases?.find((a) => a.toLowerCase().includes(q));
+      if (alias) return { s: 2.5, alias };
+      if (sub.startsWith(q)) return { s: 3 };
+      if (sub.includes(q)) return { s: 4 };
+      return { s: 99 };
     };
     return entries
-      .map((e) => ({ e, s: score(e) }))
+      .map((e) => ({ e, ...score(e) }))
       .filter((r) => r.s < 99)
       // 同分时植物排在科、属前面
       .sort((a, b) => a.s - b.s || (a.e.kind === "plant" ? -1 : 1) - (b.e.kind === "plant" ? -1 : 1))
       .slice(0, MAX_RESULTS)
-      .map((r) => r.e);
+      .map((r) => ({ ...r.e, matchedAlias: r.alias }));
   }, [entries, query]);
 
-  function go(entry?: SearchEntry) {
+  function go(entry?: SearchEntry & { matchedAlias?: string }) {
     const term = query.trim();
     if (!entry) {
       // 搜不到的词：可以作为下一批收录植物的参考
@@ -70,6 +77,7 @@ export default function SiteSearch({
       results: results.length,
       result_type: entry.kind,
       result_name: entry.name,
+      ...(entry.matchedAlias ? { alias: entry.matchedAlias } : {}),
     });
     setQuery("");
     setOpen(false);
@@ -128,7 +136,9 @@ export default function SiteSearch({
               >
                 <span className="site-search-kind">{KIND_LABEL[r.kind]}</span>
                 <strong>{r.name}</strong>
-                <span className="site-search-sub">{r.sub}</span>
+                <span className="site-search-sub">
+                  {r.matchedAlias ? `又名${r.matchedAlias} · ${r.sub}` : r.sub}
+                </span>
               </button>
             </li>
           ))}

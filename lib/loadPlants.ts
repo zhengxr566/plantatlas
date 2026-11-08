@@ -6,6 +6,8 @@ export type Plant = {
   slug: string;
   nameCn: string;
   nameLatin: string;
+  // 别名（俗名、旧名等），用于页面展示和搜索
+  aliases: string[];
   kingdom: string;
   division: string;
   className: string;
@@ -52,6 +54,7 @@ export function loadPlants(): Plant[] {
       slug: row.slug,
       nameCn: row.nameCn,
       nameLatin: row.nameLatin,
+      aliases: splitList(row.aliases),
       kingdom: row.kingdom,
       division: row.division,
       className: row.className,
