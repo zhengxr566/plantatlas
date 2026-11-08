@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { GA_ID } from "@/lib/analytics";
 import "./globals.css";
 
 const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
@@ -39,6 +41,8 @@ export default function RootLayout({
           />
         )}
       </body>
+      {/* 页面浏览（含站内跳转）由 GA4 的“增强型衡量”自动记录 */}
+      {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
     </html>
   );
 }

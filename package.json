@@ -10,6 +10,7 @@
     "photos": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-photos.mjs"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.4",
     "@upstash/redis": "^1.41.0",
     "csv-parse": "^6.2.1",
     "d3-hierarchy": "^3.1.3",

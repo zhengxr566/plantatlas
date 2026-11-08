@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@/lib/analytics";
 
 export type SearchEntry = {
   name: string;
@@ -57,7 +58,19 @@ export default function SiteSearch({
   }, [entries, query]);
 
   function go(entry?: SearchEntry) {
-    if (!entry) return;
+    const term = query.trim();
+    if (!entry) {
+      // 搜不到的词：可以作为下一批收录植物的参考
+      if (term) track("search", { search_term: term, source: "header", results: 0 });
+      return;
+    }
+    track("search", {
+      search_term: term,
+      source: "header",
+      results: results.length,
+      result_type: entry.kind,
+      result_name: entry.name,
+    });
     setQuery("");
     setOpen(false);
     inputRef.current?.blur();

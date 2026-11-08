@@ -144,6 +144,24 @@ ginkgo-biloba,liriodendron-chinense,看叶尖：银杏叶顶端波状或有缺�
 - `sitemap.xml` 包含图片站点地图（`<image:image>`），新图片部署后会自动出现在其中。
 - 反向对比 URL（`b-vs-a`）会 308 永久跳转到规范 URL，避免重复内容。
 
+## 访问统计（Google Analytics 4）
+
+1. 在 analytics.google.com 创建 GA4 媒体资源（网址 `https://plantatlasworld.com`），复制“衡量 ID”（`G-XXXXXXXXXX`）。
+2. 在 Vercel 项目的环境变量中添加 `NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX`，重新部署。
+
+只在生产环境加载（本地 `npm run dev` 和后台操作不计入）。页面浏览（包括站内跳转）由 GA4 的“增强型衡量”自动记录；另外记录这些自定义事件（代码见 `lib/analytics.ts`）：
+
+| 事件 | 何时触发 | 参数 |
+| --- | --- | --- |
+| `search` | 顶部搜索选择结果或回车；谱系地图“定位” | `search_term`、`source`（header / lineage）、`results`（0 表示没搜到）、`result_type`、`result_name` |
+| `lineage_expand` | 谱系地图展开节点 | `name`、`level` |
+| `lineage_plant_click` | 谱系地图点击植物 | `plant`、`view`（card / dot） |
+| `compare_part_click` | 对比页点“全部对比图”或“还有 N 张” | `pair`、`part`、`link` |
+| `tag_suggestion_submit` | 访客提交标签建议 | `file`、`added`、`removed`、`has_note` |
+
+在 GA4 中查看自定义参数前，需要在“管理 › 自定义定义”里把 `search_term`、`source`、`result_name`、`plant`、`pair`、`part` 注册为“事件范围”的自定义维度。
+**`results = 0` 的搜索词就是访客想找但网站还没有的植物，可以作为下一批收录名单。**
+
 ## 广告（Google AdSense）
 
 在 Vercel 项目的环境变量（或本地 `.env.local`）中设置：

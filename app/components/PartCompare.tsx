@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PartPlaceholder from "@/app/components/PartPlaceholder";
 import PhotoFigure from "@/app/components/PhotoFigure";
+import TrackLink from "@/app/components/TrackLink";
 import { getPart } from "@/data/parts";
 import { getPartTags, type PlantPhoto } from "@/lib/loadPhotos";
 
@@ -150,16 +151,18 @@ export default function PartCompare({
               )}
 
               {hidden > 0 && (
-                <Link
+                <TrackLink
                   href={
                     bothHavePhotos
                       ? `/compare/${pairSlug}/${partSlug}`
                       : `/plant/${plant.slug}/${partSlug}`
                   }
                   className="link"
+                  event="compare_part_click"
+                  params={{ pair: pairSlug, part: partSlug, link: "more_photos" }}
                 >
                   还有 {hidden} 张 ›
-                </Link>
+                </TrackLink>
               )}
             </div>
           );
@@ -187,10 +190,15 @@ export default function PartCompare({
 
       {headingLevel === "h3" && bothHavePhotos && (
         <p>
-          <Link href={`/compare/${pairSlug}/${partSlug}`} className="link">
+          <TrackLink
+            href={`/compare/${pairSlug}/${partSlug}`}
+            className="link"
+            event="compare_part_click"
+            params={{ pair: pairSlug, part: partSlug, link: "all_photos" }}
+          >
             查看{plantA.nameCn}和{plantB.nameCn}
             {part.noun}的区别（全部对比图）›
-          </Link>
+          </TrackLink>
         </p>
       )}
     </section>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { hierarchy, tree, type HierarchyPointNode } from "d3-hierarchy";
 import type { LineageNode } from "@/lib/lineage";
+import { track } from "@/lib/analytics";
 
 // ---------- 布局常量（单位：画布坐标，缩放 k=1 时等于像素） ----------
 const COL = 200; // 每一层的水平间距
@@ -282,6 +283,7 @@ export default function LineageTree({
       [...next].forEach((id) => (id === own || id.startsWith(`${own}/`)) && next.delete(id));
     } else {
       next.add(point.data.id);
+      track("lineage_expand", { name: point.data.node.name, level: point.data.node.level });
     }
     const nextLayout = computeLayout(data, next);
     const after = nextLayout.descendants().find((n) => n.data.id === point.data.id);
@@ -302,8 +304,8 @@ export default function LineageTree({
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    const path =
-      findPlantPath(data, data.name, q) ?? null;
+    const path = findPlantPath(data, data.name, q);
+    track("search", { search_term: q, source: "lineage", results: path ? 1 : 0 });
     setNotFound(!path);
     if (!path) return;
     const next = new Set(expanded);
@@ -319,9 +321,13 @@ export default function LineageTree({
     }
   }
 
-  function openPlant(e: React.MouseEvent, href?: string) {
+  function openPlant(e: React.MouseEvent, href?: string, name?: string) {
     e.preventDefault();
     if (moved.current || !href) return;
+    track("lineage_plant_click", {
+      plant: name ?? href,
+      view: transformRef.current.k >= CARD_ZOOM ? "card" : "dot",
+    });
     router.push(href);
   }
 
@@ -407,7 +413,7 @@ export default function LineageTree({
                   <a
                     key={id}
                     href={node.href}
-                    onClick={(e) => openPlant(e, node.href)}
+                    onClick={(e) => openPlant(e, node.href, node.name)}
                     className={highlight === id ? "lineage-card lineage-card-on" : "lineage-card"}
                   >
                     <g transform={`translate(${n.y},${n.x - CARD_H / 2})`}>
@@ -454,7 +460,7 @@ export default function LineageTree({
 
               if (isPlant) {
                 return (
-                  <a key={id} href={node.href} onClick={(e) => openPlant(e, node.href)}>
+                  <a key={id} href={node.href} onClick={(e) => openPlant(e, node.href, node.name)}>
                     <g transform={`translate(${n.y},${n.x})`} className="lineage-tree-plant">
                       <circle
                         r={dot}

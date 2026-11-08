@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { PART_TAG_GROUPS } from "@/data/parts";
+import { track } from "@/lib/analytics";
 
 type TagGroup = { name: string; tags: string[] };
 
@@ -77,6 +78,12 @@ export default function TagSuggest({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "提交失败");
+      track("tag_suggestion_submit", {
+        file,
+        added: add.length,
+        removed: remove.length,
+        has_note: Boolean(note.trim()),
+      });
       setState("done");
     } catch (error) {
       setMessage((error as Error).message);

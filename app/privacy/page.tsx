@@ -25,6 +25,25 @@ export default function PrivacyPage() {
         建议经人工审核后才会显示在网站上，审核完成后即删除；请不要在补充说明中填写个人信息。
       </p>
 
+      <h2>访问统计（Google Analytics）</h2>
+      <p>
+        本网站使用 Google Analytics 4 了解访问情况，例如浏览了哪些页面、站内搜索了哪些词、
+        是否使用了谱系地图等。Google Analytics 会使用 Cookie 收集匿名的统计数据，
+        不会收集姓名、邮箱等可以直接识别个人的信息。数据由 Google 处理，详见
+        <a
+          href="https://policies.google.com/technologies/partner-sites"
+          className="link"
+          rel="noopener"
+        >
+          Google 合作伙伴网站数据使用说明
+        </a>
+        。如果不希望被统计，可以安装
+        <a href="https://tools.google.com/dlpage/gaoptout" className="link" rel="noopener">
+          Google Analytics 停用浏览器插件
+        </a>
+        ，或在浏览器中禁用 Cookie。
+      </p>
+
       <h2>Cookie 与广告</h2>
       <p>
         本网站使用 Google AdSense 展示广告。Google 及其合作伙伴可能使用 Cookie，
