@@ -7,12 +7,14 @@ import { parse } from "csv-parse/sync";
 import sharp from "sharp";
 import { getPart } from "@/data/parts";
 import { loadPlants } from "@/lib/loadPlants";
+import { readTagGroups, tagsMdPath as tagsMd } from "@/lib/tags";
+
+export { readTagGroups, type TagGroup } from "@/lib/tags";
 
 const root = process.cwd();
 const photosDir = path.join(root, "public", "photos");
 const photosCsv = path.join(root, "data", "photos.csv");
 const compareCsv = path.join(root, "data", "compare.csv");
-const tagsMd = path.join(root, "tags.md");
 
 export const PHOTO_COLUMNS = [
   "file",
@@ -253,24 +255,6 @@ export function saveCompareNote(
       : others;
 
   writeCsv(compareCsv, COMPARE_COLUMNS, next);
-}
-
-export type TagGroup = { name: string; tags: string[] };
-
-export function readTagGroups(): TagGroup[] {
-  const groups: TagGroup[] = [];
-  let current: TagGroup | null = null;
-
-  for (const line of fs.readFileSync(tagsMd, "utf8").split(/\r?\n/)) {
-    if (line.startsWith("## ")) {
-      current = { name: line.slice(3).trim(), tags: [] };
-      groups.push(current);
-    } else if (current && line.startsWith("- ")) {
-      current.tags.push(line.slice(2).trim());
-    }
-  }
-
-  return groups.filter((g) => g.tags.length > 0);
 }
 
 const CUSTOM_GROUP = "自定义 Custom";

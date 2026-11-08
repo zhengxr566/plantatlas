@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import TagSuggest from "@/app/components/TagSuggest";
 import { buildPhotoAlt, type PlantPhoto } from "@/lib/loadPhotos";
 
 type PlantName = { slug: string; nameCn: string; nameLatin?: string };
@@ -10,12 +11,15 @@ export default function PhotoFigure({
   preload = false,
   sizes = "(max-width: 768px) 100vw, 50vw",
   showTags = true,
+  suggestable = false,
 }: {
   photo: PlantPhoto;
   plant: PlantName;
   preload?: boolean;
   sizes?: string;
   showTags?: boolean;
+  // 显示“补充 / 纠正标签”（需要配置 Upstash Redis）
+  suggestable?: boolean;
 }) {
   const alt = buildPhotoAlt(photo, plant);
 
@@ -53,6 +57,9 @@ export default function PhotoFigure({
             更多图片
           </Link>
         </span>
+        {suggestable && (
+          <TagSuggest file={photo.file} part={photo.part} currentTags={photo.tags} />
+        )}
       </figcaption>
     </figure>
   );

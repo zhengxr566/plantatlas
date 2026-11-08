@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import CompareTab from "./CompareTab";
 import LibraryTab from "./LibraryTab";
 import ProgressTab from "./ProgressTab";
+import ReviewTab, { type Suggestion } from "./ReviewTab";
 import UploadTab from "./UploadTab";
 import { api, type AdminData, type TagGroup } from "./types";
 
-type Tab = "upload" | "library" | "progress" | "compare";
+type Tab = "upload" | "library" | "progress" | "compare" | "review";
+type SuggestionState = { enabled: boolean; suggestions: Suggestion[] };
 type PublishStatus = { branch: string; files: { status: string; path: string }[] };
 
 const TABS: { key: Tab; label: string }[] = [
@@ -15,6 +17,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "library", label: "图片库" },
   { key: "progress", label: "拍摄进度" },
   { key: "compare", label: "对比要点" },
+  { key: "review", label: "待审核" },
 ];
 
 function defaultMessage() {
@@ -31,6 +34,15 @@ export default function AdminApp() {
   const [publishMessage, setPublishMessage] = useState(defaultMessage);
   const [publishLog, setPublishLog] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [review, setReview] = useState<SuggestionState>({ enabled: false, suggestions: [] });
+
+  const refreshReview = useCallback(async () => {
+    try {
+      setReview(await api<SuggestionState>("/api/admin/suggestions"));
+    } catch {
+      setReview({ enabled: false, suggestions: [] });
+    }
+  }, []);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -58,6 +70,9 @@ export default function AdminApp() {
       .catch((e: Error) => !cancelled && setError(e.message));
     api<PublishStatus>("/api/admin/publish")
       .then((s) => !cancelled && setStatus(s))
+      .catch(() => {});
+    api<SuggestionState>("/api/admin/suggestions")
+      .then((r) => !cancelled && setReview(r))
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -106,6 +121,7 @@ export default function AdminApp() {
               onClick={() => setTab(t.key)}
             >
               {t.label}
+              {t.key === "review" && review.suggestions.length > 0 && ` (${review.suggestions.length})`}
             </button>
           ))}
         </nav>
@@ -148,6 +164,17 @@ export default function AdminApp() {
           </div>
           <div hidden={tab !== "compare"}>
             <CompareTab data={data} onChanged={refresh} />
+          </div>
+          <div hidden={tab !== "review"}>
+            <ReviewTab
+              data={data}
+              enabled={review.enabled}
+              suggestions={review.suggestions}
+              onChanged={() => {
+                refresh();
+                refreshReview();
+              }}
+            />
           </div>
         </main>
       )}

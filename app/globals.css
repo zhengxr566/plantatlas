@@ -711,3 +711,140 @@ a {
   height: 260px;
   margin-bottom: 0;
 }
+
+/* =========================
+   Tag Suggestions（访客补充标签）
+========================= */
+
+.tag-suggest {
+  margin-top: 4px;
+}
+
+.tag-suggest-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #4b6b4e;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tag-suggest-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #dce8da;
+  border-radius: 10px;
+  background: #fbfdfb;
+}
+
+.tag-suggest-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.tag-suggest-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.tag-suggest-label {
+  width: 100%;
+  color: #3f5a42;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tag-suggest-group {
+  min-width: 84px;
+  color: #7a867c;
+  font-size: 0.75rem;
+}
+
+.tag-suggest .photo-tag {
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.tag-suggest .tag-option {
+  border-color: #dce8da;
+  background: #fff;
+  color: #4b6b4e;
+}
+
+.tag-suggest .tag-add {
+  border-color: #2f6b3a;
+  background: #2f6b3a;
+  color: #fff;
+}
+
+.tag-suggest .tag-remove {
+  border-color: #e3c0bb;
+  background: #fbefed;
+  color: #b03a2e;
+  text-decoration: line-through;
+}
+
+.tag-suggest-note {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #dce8da;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.tag-suggest-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.tag-suggest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-suggest-submit {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #2f6b3a;
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tag-suggest-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tag-suggest-hint {
+  color: #7a867c;
+  font-size: 0.75rem;
+}
+
+.tag-suggest-done {
+  margin: 6px 0 0;
+  color: #2f6b3a;
+  font-size: 0.85rem;
+}
+
+.tag-suggest-error {
+  margin: 6px 0 0;
+  color: #b03a2e;
+  font-size: 0.8rem;
+}

@@ -637,3 +637,36 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- 待审核 ---------- */
+
+.admin .review-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 8px 0;
+}
+
+.admin .review-add {
+  color: var(--a-green);
+  font-weight: 600;
+}
+
+.admin .review-remove {
+  color: var(--a-danger);
+  font-weight: 600;
+}
+
+.admin .review-note {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--a-border);
+  background: #f8faf7;
+  color: #3f5a42;
+}
+
+.admin .review-tab code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #f0f4ef;
+}

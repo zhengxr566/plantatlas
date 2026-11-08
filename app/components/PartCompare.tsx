@@ -48,6 +48,7 @@ export default function PartCompare({
   maxPhotos = 2,
   headingLevel = "h3",
   preload = false,
+  suggestable = false,
 }: {
   partSlug: string;
   plantA: PlantName;
@@ -58,6 +59,7 @@ export default function PartCompare({
   maxPhotos?: number;
   headingLevel?: "h2" | "h3";
   preload?: boolean;
+  suggestable?: boolean;
 }) {
   const part = getPart(partSlug);
   if (!part) return null;
@@ -100,6 +102,7 @@ export default function PartCompare({
                 plant={plant}
                 preload={preload && i === 0}
                 sizes="(max-width: 768px) 100vw, 40vw"
+                suggestable={suggestable}
               />
             ))}
           </div>

@@ -6,6 +6,7 @@ import { articleMeta } from "@/lib/structuredData";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import PartCompare, { describePartDifference } from "@/app/components/PartCompare";
 import AdSlot from "@/app/components/AdSlot";
+import { isSuggestionEnabled } from "@/lib/suggestions";
 import { getPart } from "@/data/parts";
 import {
   findComparePair,
@@ -141,6 +142,7 @@ export default async function PartComparePage({ params }: { params: Params }) {
         maxPhotos={6}
         headingLevel="h2"
         preload
+        suggestable={isSuggestionEnabled()}
       />
 
       {field && (plantA[field] || plantB[field]) && (

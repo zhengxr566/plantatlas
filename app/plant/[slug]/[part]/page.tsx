@@ -6,6 +6,7 @@ import Breadcrumb from "@/app/components/Breadcrumb";
 import { articleMeta, taxonomyCrumbs } from "@/lib/structuredData";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import AdSlot from "@/app/components/AdSlot";
+import { isSuggestionEnabled } from "@/lib/suggestions";
 import { getPart } from "@/data/parts";
 import { loadPlants, type Plant } from "@/lib/loadPlants";
 import {
@@ -99,6 +100,7 @@ export default async function PlantPartPage({ params }: { params: Params }) {
     .filter((item) => item.overlap)
     .sort((a, b) => b.overlap!.sharedTags.length - a.overlap!.sharedTags.length);
   const url = `https://plantatlasworld.com/plant/${plant.slug}/${part.slug}`;
+  const suggestable = isSuggestionEnabled();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -144,6 +146,7 @@ export default async function PlantPartPage({ params }: { params: Params }) {
             plant={plant}
             preload={i === 0}
             sizes="(max-width: 768px) 100vw, 33vw"
+            suggestable={suggestable}
           />
         ))}
       </div>

@@ -1,3 +1,5 @@
+export { PART_TAG_GROUPS } from "@/data/parts";
+
 export type AdminPlant = {
   slug: string;
   nameCn: string;
@@ -67,20 +69,6 @@ export type PhotoMeta = {
 };
 
 export const SEASONS = ["春季", "夏季", "秋季", "冬季"];
-
-// 不同部位优先显示的标签分组（按 tags.md 分组名的前两个字匹配）
-export const PART_TAG_GROUPS: Record<string, string[]> = {
-  leaf: ["叶片", "季节", "特殊"],
-  autumn: ["季节", "叶片"],
-  flower: ["花果", "季节"],
-  fruit: ["花果"],
-  cone: ["花果", "叶片"],
-  seed: ["花果"],
-  bark: ["特殊", "树形"],
-  branch: ["树形", "特殊"],
-  bud: ["季节", "特殊"],
-  habit: ["树形", "季节", "用途", "环境"],
-};
 
 export async function api<T = unknown>(
   url: string,
