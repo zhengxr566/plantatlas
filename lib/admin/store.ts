@@ -70,13 +70,14 @@ function csvCell(value: unknown) {
 function writeCsv(
   filePath: string,
   columns: readonly string[],
-  rows: Record<string, string>[]
+  rows: Record<string, string>[],
+  { bom = false, eol = "\n" }: { bom?: boolean; eol?: string } = {}
 ) {
   const lines = [
     columns.join(","),
     ...rows.map((row) => columns.map((col) => csvCell(row[col])).join(",")),
   ];
-  fs.writeFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
+  fs.writeFileSync(filePath, `${bom ? "\ufeff" : ""}${lines.join(eol)}${eol}`, "utf8");
 }
 
 export function readPhotoRows() {
@@ -260,34 +261,273 @@ export function saveCompareNote(
 const CUSTOM_GROUP = "自定义 Custom";
 
 // 新标签写入 tags.md 的“自定义”分组（放在“Tag 使用规则”之前）
-export function addTag(tag: string) {
+function validateTagName(tag: string) {
   const clean = tag.trim();
-  if (!clean || /[|,，、]/.test(clean)) throw new Error("标签不能为空或包含分隔符");
-  if (readTagGroups().some((g) => g.tags.includes(clean))) return;
+  if (!clean || /[|,，、]/.test(clean)) throw new Error("标签不能为空或包含分隔符 | , ，、");
+  return clean;
+}
 
+// 读写 tags.md，保留原文件的换行符
+function editTagsMd(edit: (lines: string[]) => void) {
   const text = fs.readFileSync(tagsMd, "utf8");
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const lines = text.split(/\r?\n/);
-  const header = lines.findIndex((l) => l.trim() === `## ${CUSTOM_GROUP}`);
+  edit(lines);
+  fs.writeFileSync(tagsMd, lines.join(eol), "utf8");
+}
 
-  if (header >= 0) {
-    let end = header + 1;
-    while (end < lines.length && !lines[end].startsWith("## ")) end++;
-    while (end > header + 1 && lines[end - 1].trim() === "") end--;
-    lines.splice(end, 0, `- ${clean}`);
-  } else {
-    let at = lines.findIndex((l) => l.startsWith("## Tag 使用规则"));
-    if (at < 0) at = lines.length;
-    lines.splice(at, 0, `## ${CUSTOM_GROUP}`, "", `- ${clean}`, "");
+// 新标签写入 tags.md 的指定分组（默认“自定义”分组，放在“Tag 使用规则”之前）
+export function addTag(tag: string, group = CUSTOM_GROUP) {
+  const clean = validateTagName(tag);
+  if (readTagGroups().some((g) => g.tags.includes(clean))) return;
+
+  editTagsMd((lines) => {
+    const header = lines.findIndex((l) => l.trim() === `## ${group}`);
+    if (header >= 0) {
+      let end = header + 1;
+      while (end < lines.length && !lines[end].startsWith("## ")) end++;
+      while (end > header + 1 && lines[end - 1].trim() === "") end--;
+      lines.splice(end, 0, `- ${clean}`);
+    } else {
+      let at = lines.findIndex((l) => l.startsWith("## Tag 使用规则"));
+      if (at < 0) at = lines.length;
+      lines.splice(at, 0, `## ${group}`, "", `- ${clean}`, "");
+    }
+  });
+}
+
+// ---------- 植物资料（plants.csv） ----------
+
+const plantsCsv = path.join(root, "data", "plants.csv");
+const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const LIST_FIELDS = ["usage", "tags", "similar"];
+const REQUIRED_FIELDS: Record<string, string> = {
+  slug: "网址标识",
+  nameCn: "中文名",
+  nameLatin: "学名",
+  division: "类群",
+  className: "纲",
+  classSlug: "纲标识",
+  order: "目",
+  orderSlug: "目标识",
+  family: "科",
+  familySlug: "科标识",
+  genus: "属",
+  genusSlug: "属标识",
+};
+
+export type PlantRow = Record<string, string>;
+
+function readPlantFile() {
+  const text = fs.readFileSync(plantsCsv, "utf8");
+  const rows = parse(text, {
+    bom: true,
+    columns: true,
+    skip_empty_lines: true,
+    relax_column_count: true,
+  }) as PlantRow[];
+  const columns = text
+    .replace(/^﻿/, "")
+    .split(/\r?\n/)[0]
+    .split(",")
+    .map((c) => c.trim());
+  // 保持原文件格式（BOM + 换行符），方便继续用 Excel 打开
+  const format = {
+    bom: text.startsWith("﻿"),
+    eol: text.includes("\r\n") ? "\r\n" : "\n",
+  };
+  return { rows, columns, format };
+}
+
+export function readPlantRows() {
+  const { rows, columns } = readPlantFile();
+  return { rows, columns };
+}
+
+function writePlantRows(rows: PlantRow[]) {
+  const { columns, format } = readPlantFile();
+  writeCsv(plantsCsv, columns, rows, format);
+}
+
+function normalizeList(value: unknown) {
+  const list = Array.isArray(value) ? value : String(value ?? "").split(/[|、,，]/);
+  return Array.from(new Set(list.map((v) => String(v).trim()).filter(Boolean))).join("|");
+}
+
+// 同一个分类标识必须对应同一个名称（例如 genusSlug=pinus 只能是“松属”）
+function checkTaxonomy(row: PlantRow, others: PlantRow[]) {
+  const pairs: [string, string, string][] = [
+    ["classSlug", "className", "纲"],
+    ["orderSlug", "order", "目"],
+    ["familySlug", "family", "科"],
+    ["genusSlug", "genus", "属"],
+  ];
+  for (const [slugKey, nameKey, label] of pairs) {
+    const clash = others.find(
+      (o) =>
+        (o[slugKey] === row[slugKey] && o[nameKey] !== row[nameKey]) ||
+        (o[nameKey] === row[nameKey] && o[slugKey] !== row[slugKey])
+    );
+    if (clash) {
+      throw new Error(
+        `${label}“${row[nameKey]}”（${row[slugKey]}）与${clash.nameCn}的${label}“${clash[nameKey]}”（${clash[slugKey]}）不一致`
+      );
+    }
+  }
+}
+
+// isNew=true 时新增；否则按 slug 更新（slug 不可修改，避免已收录的网址失效）
+export function savePlant(input: PlantRow, isNew: boolean) {
+  const { rows, columns } = readPlantFile();
+  const row: PlantRow = {};
+  for (const col of columns) {
+    row[col] = LIST_FIELDS.includes(col)
+      ? normalizeList(input[col])
+      : String(input[col] ?? "").trim().replace(/\r?\n/g, " ");
+  }
+  row.kingdom ||= "植物界";
+
+  for (const [key, label] of Object.entries(REQUIRED_FIELDS)) {
+    if (!row[key]) throw new Error(`请填写${label}`);
+  }
+  for (const key of ["slug", "classSlug", "orderSlug", "familySlug", "genusSlug"]) {
+    if (!SLUG_RE.test(row[key])) {
+      throw new Error(`${REQUIRED_FIELDS[key]}“${row[key]}”只能使用小写英文、数字和 -`);
+    }
   }
 
-  fs.writeFileSync(tagsMd, lines.join(eol), "utf8");
+  const index = rows.findIndex((r) => r.slug === row.slug);
+  if (isNew && index >= 0) throw new Error(`网址标识 ${row.slug} 已被${rows[index].nameCn}使用`);
+  if (!isNew && index < 0) throw new Error(`找不到植物 ${row.slug}`);
+
+  const others = rows.filter((r) => r.slug !== row.slug);
+  const sameName = others.find((r) => r.nameCn === row.nameCn);
+  if (sameName) {
+    throw new Error(`中文名“${row.nameCn}”已被 ${sameName.slug} 使用（相似植物按中文名匹配，不能重名）`);
+  }
+  checkTaxonomy(row, others);
+
+  if (isNew) rows.push(row);
+  else rows[index] = row;
+  writePlantRows(rows);
+
+  // 相似植物写的是中文名，不存在的只提示不报错
+  const names = new Set(rows.map((r) => r.nameCn));
+  const warnings = (row.similar || "")
+    .split("|")
+    .filter((n) => n && !names.has(n))
+    .map((n) => `相似植物“${n}”还没有收录，暂时不会生成对比页`);
+
+  return { row, warnings };
+}
+
+// 有图片或手写对比引用的植物不能删除
+export function deletePlant(slug: string) {
+  const { rows } = readPlantFile();
+  const plant = rows.find((r) => r.slug === slug);
+  if (!plant) throw new Error(`找不到植物 ${slug}`);
+  const photos = readPhotoRows().filter((r) => r.plant === slug).length;
+  if (photos > 0) throw new Error(`${plant.nameCn}还有 ${photos} 张图片，请先在图片库中删除或移走`);
+  if (readCompareRows().some((r) => r.plantA === slug || r.plantB === slug)) {
+    throw new Error(`${plant.nameCn}在对比要点中被引用，请先删除相关对比`);
+  }
+  writePlantRows(rows.filter((r) => r.slug !== slug));
+}
+
+// ---------- 标签管理 ----------
+
+export function getTagUsage() {
+  const photos = readPhotoRows();
+  const { rows: plants } = readPlantFile();
+  const count = (list: { tags?: string }[]) => {
+    const map = new Map<string, number>();
+    list.forEach((r) =>
+      (r.tags || "")
+        .split("|")
+        .filter(Boolean)
+        .forEach((t) => map.set(t, (map.get(t) ?? 0) + 1))
+    );
+    return map;
+  };
+  const photoCount = count(photos);
+  const plantCount = count(plants);
+  const known = new Set(readTagGroups().flatMap((g) => g.tags));
+  const all = new Set([...known, ...photoCount.keys(), ...plantCount.keys()]);
+
+  return [...all].map((tag) => ({
+    tag,
+    inVocabulary: known.has(tag),
+    photos: photoCount.get(tag) ?? 0,
+    plants: plantCount.get(tag) ?? 0,
+  }));
+}
+
+function replaceInTags(value: string, from: string, to: string | null) {
+  const list = value.split("|").filter(Boolean);
+  if (!list.includes(from)) return value;
+  return Array.from(new Set(list.flatMap((t) => (t === from ? (to ? [to] : []) : [t])))).join("|");
+}
+
+function applyTagChange(from: string, to: string | null) {
+  const photos = readPhotoRows();
+  let photoChanges = 0;
+  photos.forEach((r) => {
+    const next = replaceInTags(r.tags, from, to);
+    if (next !== r.tags) {
+      r.tags = next;
+      r.updated = today();
+      photoChanges++;
+    }
+  });
+  if (photoChanges > 0) writePhotoRows(photos);
+
+  const { rows: plants } = readPlantFile();
+  let plantChanges = 0;
+  plants.forEach((r) => {
+    const next = replaceInTags(r.tags || "", from, to);
+    if (next !== (r.tags || "")) {
+      r.tags = next;
+      plantChanges++;
+    }
+  });
+  if (plantChanges > 0) writePlantRows(plants);
+
+  return { photos: photoChanges, plants: plantChanges };
+}
+
+// 重命名或合并：to 已在词表中时为合并（从词表删除 from），否则就地改名。
+// 同时更新所有图片和植物资料中的标签
+export function renameTag(from: string, toInput: string) {
+  const to = validateTagName(toInput);
+  if (from === to) return { photos: 0, plants: 0 };
+  const known = new Set(readTagGroups().flatMap((g) => g.tags));
+
+  editTagsMd((lines) => {
+    const i = lines.findIndex((l) => l.trim() === `- ${from}`);
+    if (i < 0) return; // from 只出现在数据中，不在词表里
+    if (known.has(to)) lines.splice(i, 1);
+    else lines[i] = `- ${to}`;
+  });
+  // from 不在词表、to 也是新标签时，把 to 加入“自定义”分组
+  if (!known.has(from) && !known.has(to)) addTag(to);
+
+  return applyTagChange(from, to);
+}
+
+// 从词表、图片和植物资料中删除标签
+export function deleteTag(tag: string) {
+  editTagsMd((lines) => {
+    const i = lines.findIndex((l) => l.trim() === `- ${tag}`);
+    if (i >= 0) lines.splice(i, 1);
+  });
+  return applyTagChange(tag, null);
 }
 
 // ---------- 发布（git） ----------
 
 const run = promisify(execFile);
 const PUBLISH_PATHS = [
+  "data/plants.csv",
   "data/photos.csv",
   "data/compare.csv",
   "tags.md",

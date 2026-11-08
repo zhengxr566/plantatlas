@@ -1,0 +1,383 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import PlantPicker from "./PlantPicker";
+import TagPicker from "./TagPicker";
+import { api, splitTags, type AdminData } from "./types";
+
+type Row = Record<string, string>;
+
+const TEXT_FIELDS: { key: string; label: string; rows?: number }[] = [
+  { key: "habit", label: "生活型（如 落叶乔木）" },
+  { key: "leaf", label: "叶片", rows: 2 },
+  { key: "flower", label: "花", rows: 2 },
+  { key: "fruit", label: "果实 / 种子", rows: 2 },
+  { key: "bark", label: "树皮", rows: 2 },
+  { key: "environment", label: "生长环境", rows: 2 },
+];
+
+const TAXONOMY_FIELDS: { key: string; label: string }[] = [
+  { key: "className", label: "纲" },
+  { key: "classSlug", label: "纲标识" },
+  { key: "order", label: "目" },
+  { key: "orderSlug", label: "目标识" },
+  { key: "family", label: "科" },
+  { key: "familySlug", label: "科标识" },
+  { key: "genus", label: "属" },
+  { key: "genusSlug", label: "属标识" },
+];
+
+// 学名 → 网址标识，例如 "Pinus bungeana" → "pinus-bungeana"
+function slugify(latin: string) {
+  return latin
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function emptyRow(columns: string[]): Row {
+  return Object.fromEntries(columns.map((c) => [c, c === "kingdom" ? "植物界" : ""]));
+}
+
+export default function PlantsTab({
+  data,
+  onChanged,
+  onAddTag,
+}: {
+  data: AdminData;
+  onChanged: () => void;
+  onAddTag: (tag: string) => Promise<void>;
+}) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState<{ row: Row; isNew: boolean; autoSlug: boolean } | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  function load() {
+    return api<{ rows: Row[]; columns: string[] }>("/api/admin/plants").then((d) => {
+      setRows(d.rows);
+      setColumns(d.columns);
+    });
+  }
+
+  useEffect(() => {
+    api<{ rows: Row[]; columns: string[] }>("/api/admin/plants")
+      .then((d) => {
+        setRows(d.rows);
+        setColumns(d.columns);
+      })
+      .catch((e: Error) => setMessage({ type: "error", text: e.message }));
+  }, []);
+
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter(
+      (r) =>
+        !q ||
+        r.nameCn.includes(q) ||
+        r.nameLatin.toLowerCase().includes(q) ||
+        r.family.includes(q) ||
+        r.genus.includes(q) ||
+        r.slug.includes(q)
+    );
+  }, [rows, query]);
+
+  // 已有的属 / 科，用于快速填写分类
+  const genera = useMemo(() => {
+    const map = new Map<string, Row>();
+    rows.forEach((r) => map.set(r.genusSlug, r));
+    return [...map.values()].sort((a, b) => a.family.localeCompare(b.family, "zh"));
+  }, [rows]);
+  const families = useMemo(() => {
+    const map = new Map<string, Row>();
+    rows.forEach((r) => map.set(r.familySlug, r));
+    return [...map.values()].sort((a, b) => a.family.localeCompare(b.family, "zh"));
+  }, [rows]);
+
+  const photoCount = (slug: string) => data.photos.filter((p) => p.plant === slug).length;
+
+  function confirmDiscard() {
+    return !dirty || confirm("有未保存的修改，确定放弃吗？");
+  }
+
+  function open(row: Row, isNew: boolean) {
+    if (!confirmDiscard()) return;
+    setEditing({ row: { ...row }, isNew, autoSlug: isNew && !row.slug });
+    setDirty(false);
+    setMessage(null);
+  }
+
+  function set(key: string, value: string) {
+    if (!editing) return;
+    const row = { ...editing.row, [key]: value };
+    let autoSlug = editing.autoSlug;
+    if (key === "slug") autoSlug = false;
+    if (key === "nameLatin" && editing.isNew && autoSlug) row.slug = slugify(value);
+    setEditing({ ...editing, row, autoSlug });
+    setDirty(true);
+  }
+
+  // 选择已有的属或科：自动带出上级分类
+  function fillTaxonomy(source: Row, depth: "genus" | "family") {
+    if (!editing) return;
+    const keys = ["division", "className", "classSlug", "order", "orderSlug", "family", "familySlug"];
+    if (depth === "genus") keys.push("genus", "genusSlug");
+    const row = { ...editing.row };
+    keys.forEach((k) => (row[k] = source[k]));
+    if (depth === "family") {
+      row.genus = "";
+      row.genusSlug = "";
+    }
+    setEditing({ ...editing, row });
+    setDirty(true);
+  }
+
+  async function save() {
+    if (!editing) return;
+    try {
+      const result = await api<{ row: Row; warnings: string[] }>("/api/admin/plants", {
+        method: editing.isNew ? "POST" : "PUT",
+        json: { row: editing.row },
+      });
+      await load();
+      setEditing({ row: result.row, isNew: false, autoSlug: false });
+      setDirty(false);
+      setMessage({
+        type: "ok",
+        text: ["已保存", ...result.warnings].join("。"),
+      });
+      onChanged();
+    } catch (e) {
+      setMessage({ type: "error", text: (e as Error).message });
+    }
+  }
+
+  async function remove() {
+    if (!editing || editing.isNew) return;
+    if (!confirm(`删除 ${editing.row.nameCn}？这会从 plants.csv 中移除这种植物。`)) return;
+    try {
+      await api("/api/admin/plants", { method: "DELETE", json: { slug: editing.row.slug } });
+      await load();
+      setEditing(null);
+      setDirty(false);
+      onChanged();
+    } catch (e) {
+      setMessage({ type: "error", text: (e as Error).message });
+    }
+  }
+
+  const row = editing?.row;
+  const similar = row ? splitTags((row.similar || "").replace(/[、,，]/g, "|")) : [];
+
+  return (
+    <div className="plants-tab">
+      <div className="filters">
+        <input value={query} placeholder="搜索中文名、学名、科、属" onChange={(e) => setQuery(e.target.value)} />
+        <button type="button" className="btn btn-primary" onClick={() => open(emptyRow(columns), true)}>
+          新增植物
+        </button>
+        <span className="muted">{list.length} 种</span>
+      </div>
+
+      <div className="library-layout">
+        <ul className="pair-list">
+          {list.map((r) => (
+            <li key={r.slug}>
+              <button
+                type="button"
+                className={editing?.row.slug === r.slug && !editing.isNew ? "pair-row pair-row-on" : "pair-row"}
+                onClick={() => open(r, false)}
+              >
+                <strong>{r.nameCn}</strong>
+                <span className="muted">
+                  {r.nameLatin} · {r.family} · {r.genus}
+                </span>
+                {photoCount(r.slug) > 0 && <span className="badge">{photoCount(r.slug)} 张图</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {editing && row && (
+          <aside className="panel library-editor plant-editor">
+            <h2>
+              {editing.isNew ? "新增植物" : row.nameCn}
+              {dirty && <span className="badge badge-warn"> 未保存</span>}
+            </h2>
+
+            <h3>基本信息</h3>
+            <div className="field-row">
+              <label className="field">
+                <span>中文名</span>
+                <input value={row.nameCn} onChange={(e) => set("nameCn", e.target.value)} />
+              </label>
+              <label className="field">
+                <span>学名</span>
+                <input value={row.nameLatin} onChange={(e) => set("nameLatin", e.target.value)} />
+              </label>
+              <label className="field">
+                <span>网址标识{editing.isNew ? "（根据学名生成）" : "（不可修改）"}</span>
+                <input value={row.slug} readOnly={!editing.isNew} onChange={(e) => set("slug", e.target.value)} />
+              </label>
+            </div>
+            {row.slug && <p className="muted">页面地址：/plant/{row.slug}</p>}
+
+            <h3>分类</h3>
+            <div className="field-row">
+              <label className="field">
+                <span>选择已有的属（自动填写上级分类）</span>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const g = genera.find((x) => x.genusSlug === e.target.value);
+                    if (g) fillTaxonomy(g, "genus");
+                  }}
+                >
+                  <option value="">—</option>
+                  {genera.map((g) => (
+                    <option key={g.genusSlug} value={g.genusSlug}>
+                      {g.genus} · {g.family}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>或选择已有的科（新属时用）</span>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const f = families.find((x) => x.familySlug === e.target.value);
+                    if (f) fillTaxonomy(f, "family");
+                  }}
+                >
+                  <option value="">—</option>
+                  {families.map((f) => (
+                    <option key={f.familySlug} value={f.familySlug}>
+                      {f.family} · {f.order}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>类群</span>
+                <select value={row.division} onChange={(e) => set("division", e.target.value)}>
+                  <option value="">—</option>
+                  <option>裸子植物</option>
+                  <option>被子植物</option>
+                </select>
+              </label>
+            </div>
+            <div className="field-grid-4">
+              {TAXONOMY_FIELDS.map((f) => (
+                <label key={f.key} className="field">
+                  <span>{f.label}</span>
+                  <input value={row[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />
+                </label>
+              ))}
+            </div>
+            <p className="muted">标识用小写英文和 -，通常取拉丁名，例如 松科 → pinaceae、松属 → pinus。</p>
+
+            <h3>形态与生境</h3>
+            {TEXT_FIELDS.map((f) => (
+              <label key={f.key} className="field">
+                <span>{f.label}</span>
+                {f.rows ? (
+                  <textarea rows={f.rows} value={row[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />
+                ) : (
+                  <input value={row[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />
+                )}
+              </label>
+            ))}
+
+            <label className="field">
+              <span>用途（用 、 分隔）</span>
+              <input
+                value={(row.usage ?? "").split("|").join("、")}
+                onChange={(e) => set("usage", e.target.value.replace(/[、,，]/g, "|"))}
+              />
+            </label>
+
+            <div className="field">
+              <span>植物标签（用于识别页）</span>
+              <TagPicker
+                value={splitTags(row.tags ?? "")}
+                onChange={(tags) => set("tags", tags.join("|"))}
+                groups={data.tagGroups}
+                part="habit"
+                onAddTag={onAddTag}
+              />
+            </div>
+
+            <div className="field">
+              <span>相似植物（会自动生成对比页）</span>
+              <div className="tag-picker-selected">
+                {similar.length === 0 && <span className="muted">无</span>}
+                {similar.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={rows.some((r) => r.nameCn === name) ? "chip chip-on" : "chip"}
+                    title={rows.some((r) => r.nameCn === name) ? "" : "还没有收录这种植物"}
+                    onClick={() => set("similar", similar.filter((n) => n !== name).join("|"))}
+                  >
+                    {name} ×
+                  </button>
+                ))}
+              </div>
+              <PlantPicker
+                plants={data.plants.filter((p) => p.slug !== row.slug)}
+                value=""
+                placeholder="添加相似植物"
+                onChange={(slug) => {
+                  const name = data.plants.find((p) => p.slug === slug)?.nameCn;
+                  if (name && !similar.includes(name)) set("similar", [...similar, name].join("|"));
+                }}
+              />
+            </div>
+
+            <div className="queue-item-actions">
+              <button type="button" className="btn btn-primary" onClick={save}>
+                {editing.isNew ? "新增" : "保存"}
+              </button>
+              {!editing.isNew && (
+                <>
+                  <a className="btn" href={`/plant/${row.slug}`} target="_blank" rel="noopener">
+                    查看页面
+                  </a>
+                  <button
+                    type="button"
+                    className="btn"
+                    title="复制分类和描述，用于新增同属植物"
+                    onClick={() =>
+                      open({ ...row, slug: "", nameCn: "", nameLatin: "", similar: "" }, true)
+                    }
+                  >
+                    复制为新植物
+                  </button>
+                  <button type="button" className="btn btn-danger" onClick={remove}>
+                    删除
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  if (confirmDiscard()) {
+                    setEditing(null);
+                    setDirty(false);
+                  }
+                }}
+              >
+                关闭
+              </button>
+            </div>
+            {message && <p className={message.type === "error" ? "error" : "muted"}>{message.text}</p>}
+          </aside>
+        )}
+      </div>
+    </div>
+  );
+}

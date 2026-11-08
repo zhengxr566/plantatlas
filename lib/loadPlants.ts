@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { parse } from "csv-parse/sync";
 
 export type Plant = {
   slug: string;
@@ -34,25 +35,19 @@ function splitList(value?: string): string[] {
     .filter(Boolean);
 }
 
-function parseCsvLine(line: string): string[] {
-  return line.split(",").map((v) => v.trim());
-}
-
 export function loadPlants(): Plant[] {
   const filePath = path.join(process.cwd(), "data", "plants.csv");
-  const csv = fs.readFileSync(filePath, "utf8");
 
-  const lines = csv.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map((h) => h.trim());
+  // 使用标准 CSV 解析：支持 Excel 保存时给含逗号的字段加的引号
+  const rows = parse(fs.readFileSync(filePath, "utf8"), {
+    bom: true,
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+    relax_column_count: true,
+  }) as Record<string, string>[];
 
-  return lines.slice(1).map((line) => {
-    const values = parseCsvLine(line);
-    const row: Record<string, string> = {};
-
-    headers.forEach((header, index) => {
-      row[header] = values[index] || "";
-    });
-
+  return rows.map((row) => {
     return {
       slug: row.slug,
       nameCn: row.nameCn,

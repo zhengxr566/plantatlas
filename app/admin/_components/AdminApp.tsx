@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import CompareTab from "./CompareTab";
 import LibraryTab from "./LibraryTab";
+import PlantsTab from "./PlantsTab";
 import ProgressTab from "./ProgressTab";
 import ReviewTab, { type Suggestion } from "./ReviewTab";
+import TagsTab from "./TagsTab";
 import UploadTab from "./UploadTab";
 import { api, type AdminData, type TagGroup } from "./types";
 
-type Tab = "upload" | "library" | "progress" | "compare" | "review";
+type Tab = "upload" | "library" | "progress" | "compare" | "plants" | "tags" | "review";
 type SuggestionState = { enabled: boolean; suggestions: Suggestion[] };
 type PublishStatus = { branch: string; files: { status: string; path: string }[] };
 
@@ -17,6 +19,8 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "library", label: "图片库" },
   { key: "progress", label: "拍摄进度" },
   { key: "compare", label: "对比要点" },
+  { key: "plants", label: "植物资料" },
+  { key: "tags", label: "标签管理" },
   { key: "review", label: "待审核" },
 ];
 
@@ -164,6 +168,12 @@ export default function AdminApp() {
           </div>
           <div hidden={tab !== "compare"}>
             <CompareTab data={data} onChanged={refresh} />
+          </div>
+          <div hidden={tab !== "plants"}>
+            <PlantsTab data={data} onChanged={refresh} onAddTag={addTag} />
+          </div>
+          <div hidden={tab !== "tags"}>
+            <TagsTab data={data} onChanged={refresh} />
           </div>
           <div hidden={tab !== "review"}>
             <ReviewTab
