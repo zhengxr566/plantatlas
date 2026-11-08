@@ -6,6 +6,10 @@ import { articleMeta } from "@/lib/structuredData";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { identifyPages } from "@/data/identify";
 import { loadPlants } from "@/lib/loadPlants";
+import { getPart } from "@/data/parts";
+import { buildImageObjectJsonLd, loadPhotos } from "@/lib/loadPhotos";
+import { photoByPlant, themePhotos } from "@/lib/photoPicks";
+import PhotoCard from "@/app/components/PhotoCard";
 
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -83,6 +87,17 @@ export default async function IdentifyPage({
     matchPlantByTags(plant, page.tagRules || [])
   );
 
+  // 实拍示例：匹配植物中照片标签最符合本页主题的图片
+  const photos = loadPhotos();
+  const tagRules = page.tagRules || [];
+  const gallery = themePhotos(photos, matchedPlants, tagRules, 6);
+  const plantPhoto = photoByPlant(photos, tagRules);
+  // 有实拍图的植物排在前面
+  const plantCards = [...matchedPlants].sort(
+    (a, b) => Number(plantPhoto.has(b.slug)) - Number(plantPhoto.has(a.slug))
+  );
+  const pageUrl = `https://plantatlasworld.com/identify/${page.slug}`;
+
   const relatedIdentifyPages = identifyPages
     .filter((p) => p.slug !== page.slug)
     .filter((p) =>
@@ -95,8 +110,11 @@ export default async function IdentifyPage({
     "@type": "CollectionPage",
     name: page.title,
     description: page.description,
-    url: `https://plantatlasworld.com/identify/${page.slug}`,
-    ...articleMeta(),
+    url: pageUrl,
+    ...articleMeta(gallery.map(({ photo }) => photo.updated)),
+    ...(gallery.length > 0
+      ? { image: gallery.map(({ photo, plant }) => buildImageObjectJsonLd(photo, plant, pageUrl)) }
+      : {}),
   };
 
   return (
@@ -125,6 +143,30 @@ export default async function IdentifyPage({
           : "当前暂无匹配植物"}。
       </p>
 
+      {gallery.length > 0 && (
+        <>
+          <h2>实拍示例</h2>
+          <div className="photo-card-grid">
+            {gallery.map(({ photo, plant }, i) => (
+              <PhotoCard
+                key={photo.id}
+                href={`/plant/${plant.slug}/${photo.part}`}
+                title={plant.nameCn}
+                subtitle={
+                  photo.tags.filter((t) => tagRules.includes(t)).join("、") ||
+                  photo.tags.slice(0, 2).join("、") ||
+                  plant.nameLatin
+                }
+                badge={getPart(photo.part)?.nameCn}
+                photo={photo}
+                plant={plant}
+                preload={i === 0}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       {page.quickIdentify && page.quickIdentify.length > 0 && (
         <>
           <h2>如何快速识别</h2>
@@ -148,19 +190,18 @@ export default async function IdentifyPage({
       <h2>匹配植物</h2>
 
       {matchedPlants.length > 0 ? (
-        <ul>
-          {matchedPlants.map((plant) => (
-            <li key={plant.slug}>
-              <Link href={`/plant/${plant.slug}`} className="link">
-                {plant.nameCn}
-              </Link>
-              <span className="meta">
-                {" "}
-                · {plant.nameLatin} · {plant.family} · {plant.genus}
-              </span>
-            </li>
+        <div className="photo-card-grid">
+          {plantCards.map((plant) => (
+            <PhotoCard
+              key={plant.slug}
+              href={`/plant/${plant.slug}`}
+              title={plant.nameCn}
+              subtitle={`${plant.nameLatin} · ${plant.family}`}
+              photo={plantPhoto.get(plant.slug)}
+              plant={plant}
+            />
           ))}
-        </ul>
+        </div>
       ) : (
         <p className="meta">
           当前没有匹配植物。后续可以通过补充 tags 扩展本识别页面。

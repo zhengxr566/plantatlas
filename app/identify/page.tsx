@@ -4,6 +4,9 @@ import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { identifyPages } from "@/data/identify";
 import { loadPlants } from "@/lib/loadPlants";
+import { loadPhotos } from "@/lib/loadPhotos";
+import { identifyCovers } from "@/lib/photoPicks";
+import PhotoCard from "@/app/components/PhotoCard";
 
 export const metadata: Metadata = {
   title: "植物识别大全｜按叶片、花果、树皮和环境识别植物",
@@ -43,6 +46,10 @@ function unique(values: string[]) {
 
 export default function IdentifyHubPage() {
   const plants = loadPlants();
+
+  // 每个识别入口用匹配植物中最符合主题的实拍做封面
+  const photos = loadPhotos();
+  const entryCards = identifyCovers(identifyPages, plants, photos);
 
   const tagCounts = new Map<string, number>();
 
@@ -103,16 +110,19 @@ export default function IdentifyHubPage() {
       </p>
 
       <h2>常见植物识别入口</h2>
-      <ul>
-        {identifyPages.map((page) => (
-          <li key={page.slug}>
-            <Link href={`/identify/${page.slug}`} className="link">
-              {page.title}
-            </Link>
-            <span className="meta"> · {page.description}</span>
-          </li>
+      <div className="photo-card-grid">
+        {entryCards.map(({ page, cover, count }, i) => (
+          <PhotoCard
+            key={page.slug}
+            href={`/identify/${page.slug}`}
+            title={page.title}
+            subtitle={`${count} 种植物 · ${page.description}`}
+            photo={cover?.photo}
+            plant={cover?.plant}
+            preload={i === 0 && Boolean(cover)}
+          />
         ))}
-      </ul>
+      </div>
 
       <h2>按叶片识别植物</h2>
       <p>
