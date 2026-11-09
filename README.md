@@ -180,13 +180,15 @@ ginkgo-biloba,liriodendron-chinense,看叶尖：银杏叶顶端波状或有缺�
 
 ## 广告（Google AdSense）
 
-在 Vercel 项目的环境变量（或本地 `.env.local`）中设置：
+发布商 ID `ca-pub-8372619640631658` 写在 `lib/adsense.ts`（需要更换时可用环境变量 `NEXT_PUBLIC_ADSENSE_CLIENT` 覆盖）。
+网站会在 `<head>` 中加载 AdSense 代码、输出 `google-adsense-account` 验证标签，并生成 `/ads.txt`。
+广告脚本和广告位只在生产环境加载，本地开发不会请求广告。
+
+如果要使用手动广告位，在 Vercel 环境变量中设置 AdSense 后台创建的展示广告单元 ID：
 
 ```
-NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
 NEXT_PUBLIC_ADSENSE_SLOT=1234567890
 ```
 
-- 设置 `CLIENT` 后：自动加载 AdSense 脚本、输出 `google-adsense-account` 验证标签，并生成 `/ads.txt`。
 - 设置 `SLOT` 后：对比页、部位页、植物图库下方会显示展示广告位。只设置 `CLIENT` 时可以在 AdSense 后台开启「自动广告」。
 - 申请前确认 `/privacy`（隐私政策与图片版权）页面可访问；建议先积累一定数量带原创图片的页面再申请。

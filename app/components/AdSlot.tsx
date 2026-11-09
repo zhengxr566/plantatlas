@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { ADSENSE_CLIENT, ADS_ENABLED } from "@/lib/adsense";
 
-// 在 .env.local / Vercel 环境变量中配置：
-//   NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
+// 发布商 ID 见 lib/adsense.ts。广告单元 ID 在 Vercel 环境变量中配置：
 //   NEXT_PUBLIC_ADSENSE_SLOT=1234567890   （AdSense 后台创建的“展示广告”单元 ID）
-// 未配置时不渲染任何内容。
-const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+// 未配置单元 ID 或在本地开发时不渲染任何内容（此时可以用 AdSense 的「自动广告」）。
+const client = ADS_ENABLED ? ADSENSE_CLIENT : undefined;
 const defaultSlot = process.env.NEXT_PUBLIC_ADSENSE_SLOT;
 
 declare global {
