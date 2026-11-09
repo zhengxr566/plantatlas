@@ -17,7 +17,7 @@ export const about = {
   references:
     "【主要参考资料，例如：《中国植物志》、Flora of China、Plants of the World Online（POWO）、各地植物园的标牌】",
   // 联系方式：建议用专门的邮箱，不要用工作邮箱
-  contact: "【联系邮箱，例如：hello@plantatlasworld.com】",
+  contact: "calmyhealth@hotmail.com",
 };
 
 // 只需要联系方式时（例如图片授权页）
