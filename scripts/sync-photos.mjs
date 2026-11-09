@@ -10,6 +10,7 @@ import { imageSize } from "image-size";
 import sharp from "sharp";
 import { plantParts } from "../data/parts.ts";
 import { VARIANT_WIDTHS, variantPath } from "../lib/imageVariants.ts";
+import { hasRights, withRights } from "../lib/imageRights.ts";
 
 const root = process.cwd();
 const photosDir = path.join(root, "public", "photos");
@@ -146,6 +147,20 @@ if (fs.existsSync(comparePath)) {
   });
 }
 
+// 还没有版权信息的 JPEG（早期上传或手动放进文件夹的图片）：写入作者、版权和授权页地址，
+// 同时去掉相机 EXIF（包括 GPS 位置）。重新压缩一次，质量与后台上传一致
+let rightsAdded = 0;
+for (const row of rows) {
+  const full = path.join(photosDir, row.file);
+  if (!fs.existsSync(full) || !/\.jpe?g$/i.test(full)) continue;
+  // 先读进内存：Windows 上 sharp 打开的文件不能直接覆盖
+  const source = fs.readFileSync(full);
+  if (hasRights((await sharp(source).metadata()).xmp)) continue;
+  const data = await withRights(sharp(source).rotate(), row).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+  fs.writeFileSync(full, data);
+  rightsAdded += 1;
+}
+
 // 生成缺失或过期的 WebP 尺寸（网站通过 lib/imageLoader.ts 直接使用这些文件）
 let variantsCreated = 0;
 for (const row of rows) {
@@ -155,8 +170,7 @@ for (const row of rows) {
   for (const width of VARIANT_WIDTHS) {
     const target = variantPath(full, width);
     if (fs.existsSync(target) && fs.statSync(target).mtimeMs >= sourceTime) continue;
-    const data = await sharp(full)
-      .rotate()
+    const data = await withRights(sharp(full).rotate(), row)
       .resize({ width, withoutEnlargement: true })
       .webp({ quality: VARIANT_QUALITY })
       .toBuffer();
@@ -179,7 +193,9 @@ const output = [
 
 fs.writeFileSync(csvPath, `${output}\n`, "utf8");
 
-console.log(`photos.csv: ${rows.length} 张图片，新增 ${added} 张；生成 WebP 尺寸 ${variantsCreated} 个`);
+console.log(
+  `photos.csv: ${rows.length} 张图片，新增 ${added} 张；写入版权信息 ${rightsAdded} 张；生成 WebP 尺寸 ${variantsCreated} 个`
+);
 if (warnings.length > 0) {
   console.log(`\n需要处理的问题（${warnings.length}）：`);
   warnings.forEach((w) => console.log(`  - ${w}`));

@@ -124,6 +124,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       })
     ),
 
+    { url: `${baseUrl}/image-license`, priority: 0.3 },
     { url: `${baseUrl}/privacy`, priority: 0.2 },
     // data/about.ts 填写完成后才提交“关于本站”
     ...(isAboutReady() ? [{ url: `${baseUrl}/about`, priority: 0.4 }] : []),

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
 
 export const metadata: Metadata = {
@@ -69,9 +70,11 @@ export default function PrivacyPage() {
       <h2 id="image-license">图片版权</h2>
       <p>
         除特别注明外，本站植物照片均为 Plant Atlas World 实拍，版权归作者所有。
-        个人学习和非商业用途可以引用，但需注明出处并链接到对应页面；
-        商业使用或转载请先联系我们获得授权。
-        部分页面在暂无实拍图时会显示来自维基百科的图片，其版权归原作者，并遵循原始授权协议。
+        免费引用的规则和商业授权方式见
+        <Link href="/image-license" className="link">
+          图片授权
+        </Link>
+        。
       </p>
 
       <h2>政策更新</h2>

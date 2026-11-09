@@ -8,7 +8,7 @@ export const POST = adminRoute(async (request: Request) => {
   if (!(file instanceof File)) throw new Error("缺少图片文件");
   const meta = JSON.parse(String(form.get("meta") ?? "{}"));
   const crop = form.get("crop") ? JSON.parse(String(form.get("crop"))) : null;
-  return addPhoto(Buffer.from(await file.arrayBuffer()), meta, crop);
+  return addPhoto(Buffer.from(await file.arrayBuffer()), meta, crop, file.name);
 });
 
 export const PATCH = adminRoute(async (request: Request) => {

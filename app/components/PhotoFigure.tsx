@@ -50,8 +50,10 @@ export default function PhotoFigure({
           {[photo.season, photo.location, photo.date]
             .filter(Boolean)
             .join(" · ")}
-          {(photo.season || photo.location || photo.date) && " · "}©{" "}
-          {photo.author}
+          {(photo.season || photo.location || photo.date) && " · "}
+          <Link href="/image-license" className="link">
+            © {photo.author}
+          </Link>
           {" · "}
           <Link href={`/plant/${plant.slug}/${photo.part}`} className="link">
             更多图片

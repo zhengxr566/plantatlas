@@ -2,9 +2,10 @@ import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
 import { getPart, plantParts } from "@/data/parts";
+import { DEFAULT_PHOTO_AUTHOR, IMAGE_LICENSE_URL, copyrightNotice } from "@/lib/imageRights";
 
 export const SITE_URL = "https://plantatlasworld.com";
-export const DEFAULT_PHOTO_AUTHOR = "Plant Atlas World";
+export { DEFAULT_PHOTO_AUTHOR };
 export const DEFAULT_PHOTO_LICENSE = "All rights reserved";
 
 export type PlantPhoto = {
@@ -120,9 +121,9 @@ export function buildImageObjectJsonLd(
     height: photo.height,
     creator: { "@type": "Person", name: photo.author },
     creditText: photo.author,
-    copyrightNotice: `© ${photo.author}`,
-    license: `${SITE_URL}/privacy#image-license`,
-    acquireLicensePage: `${SITE_URL}/privacy#image-license`,
+    copyrightNotice: copyrightNotice({ author: photo.author, date: photo.date }),
+    license: IMAGE_LICENSE_URL,
+    acquireLicensePage: IMAGE_LICENSE_URL,
     ...(photo.date ? { dateCreated: photo.date } : {}),
     ...(photo.location ? { contentLocation: photo.location } : {}),
   };

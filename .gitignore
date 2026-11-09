@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 原图（不公开，只在本地保存；见 lib/admin/store.ts）
+/originals/

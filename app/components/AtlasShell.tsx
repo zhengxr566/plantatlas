@@ -97,7 +97,9 @@ export default function AtlasShell({
         <span>·</span>
         <Link href="/identify">植物识别</Link>
         <span>·</span>
-        <Link href="/privacy">隐私政策与图片版权</Link>
+        <Link href="/image-license">图片授权</Link>
+        <span>·</span>
+        <Link href="/privacy">隐私政策</Link>
         {isAboutReady() && (
           <>
             <span>·</span>

@@ -120,8 +120,8 @@ export default function AboutPage() {
       <p>
         纠错、合作或图片授权：{about.contact}
         。图片使用规则见
-        <Link href="/privacy#image-license" className="link">
-          隐私政策与图片版权
+        <Link href="/image-license" className="link">
+          图片授权
         </Link>
         。
       </p>

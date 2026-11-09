@@ -1,6 +1,7 @@
 // 图片管理后台使用的读写工具，只在本地开发环境（npm run dev）下可用。
 import fs from "fs";
 import path from "path";
+import { createHash } from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { parse } from "csv-parse/sync";
@@ -9,6 +10,7 @@ import { getPart } from "@/data/parts";
 import { loadPlants } from "@/lib/loadPlants";
 import { readTagGroups, tagsMdPath as tagsMd } from "@/lib/tags";
 import { VARIANT_WIDTHS, variantPath } from "@/lib/imageVariants";
+import { withRights } from "@/lib/imageRights";
 
 // 网站使用的 WebP 质量（原始 JPEG 另存一份给 Google 图片和 sitemap）
 const VARIANT_QUALITY = 78;
@@ -42,7 +44,8 @@ function today() {
   return new Date().toLocaleDateString("sv-SE");
 }
 
-// 上传图片统一压缩：长边 1600px，JPEG 质量 82，去除 EXIF（包括 GPS 位置）
+// 上传图片统一压缩：长边 1600px，JPEG 质量 82，去除相机 EXIF（包括 GPS 位置），
+// 只写入版权信息（lib/imageRights.ts）。原图另存到不公开的 originals/ 文件夹
 const MAX_EDGE = 1600;
 const JPEG_QUALITY = 82;
 
@@ -140,8 +143,10 @@ export type PhotoInput = {
 // 裁剪区域，单位是按 EXIF 转正后的原图像素
 export type CropRect = { x: number; y: number; width: number; height: number };
 
-// 转正 → 裁剪 → 压缩到长边 1600px 的 JPEG（同时去除 EXIF）
-async function processImage(buffer: Buffer, crop?: CropRect | null) {
+type Rights = { author?: string; date?: string };
+
+// 转正 → 裁剪 → 压缩到长边 1600px 的 JPEG（去除相机 EXIF，写入版权信息）
+async function processImage(buffer: Buffer, crop: CropRect | null | undefined, rights: Rights) {
   const meta = await sharp(buffer).metadata();
   let image = sharp(buffer).rotate();
 
@@ -158,7 +163,7 @@ async function processImage(buffer: Buffer, crop?: CropRect | null) {
     image = image.extract({ left, top, width, height });
   }
 
-  const result = await image
+  const result = await withRights(image, rights)
     .resize({
       width: MAX_EDGE,
       height: MAX_EDGE,
@@ -171,10 +176,10 @@ async function processImage(buffer: Buffer, crop?: CropRect | null) {
 }
 
 // 生成网站使用的 WebP 尺寸（320/640/960/1600），与 JPEG 放在同一文件夹
-export async function writeVariants(jpegPath: string, jpeg?: Buffer) {
+export async function writeVariants(jpegPath: string, jpeg: Buffer | undefined, rights: Rights) {
   const source = jpeg ?? fs.readFileSync(jpegPath);
   for (const width of VARIANT_WIDTHS) {
-    const data = await sharp(source)
+    const data = await withRights(sharp(source), rights)
       .resize({ width, withoutEnlargement: true })
       .webp({ quality: VARIANT_QUALITY })
       .toBuffer();
@@ -186,16 +191,110 @@ function variantFiles(jpegPath: string) {
   return VARIANT_WIDTHS.map((w) => variantPath(jpegPath, w));
 }
 
-export async function addPhoto(buffer: Buffer, input: PhotoInput, crop?: CropRect | null) {
+// ---------- 原图（不公开，不提交到 git） ----------
+// 默认保存在项目的 originals/ 文件夹；设置环境变量 PHOTO_ORIGINALS_DIR
+// 可以改存到网盘同步文件夹（例如 OneDrive），顺便做异地备份。
+// 每张原图旁边有一个同名 .json，记录原文件名、哈希值、上传时间和裁剪区域，用于证明作者身份。
+const originalsDir = path.resolve(process.env.PHOTO_ORIGINALS_DIR || path.join(root, "originals"));
+const ORIGINAL_EXT: Record<string, string> = {
+  jpeg: "jpg",
+  png: "png",
+  webp: "webp",
+  heif: "heic",
+  avif: "avif",
+  tiff: "tif",
+  gif: "gif",
+};
+
+// public/photos 下的 plant/leaf-01.jpg → originals/plant/leaf-01（不含扩展名）
+function originalBase(file: string) {
+  return path.join(originalsDir, file.replace(/\.[^.]+$/, ""));
+}
+
+function originalFiles(file: string) {
+  const base = originalBase(file);
+  const dir = path.dirname(base);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.replace(/\.[^.]+$/, "") === path.basename(base))
+    .map((name) => path.join(dir, name));
+}
+
+// 删除网站图片时，原图不删除，移到 originals/_deleted/ 留档
+function archiveOriginal(file: string) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  for (const from of originalFiles(file)) {
+    const to = path.join(
+      originalsDir,
+      "_deleted",
+      path.dirname(file),
+      `${path.basename(from, path.extname(from))}-${stamp}${path.extname(from)}`
+    );
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.renameSync(from, to);
+  }
+}
+
+function moveOriginal(fromFile: string, toFile: string) {
+  const target = originalBase(toFile);
+  for (const from of originalFiles(fromFile)) {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    const to = `${target}${path.extname(from)}`;
+    fs.renameSync(from, to);
+    if (to.endsWith(".json")) {
+      const record = JSON.parse(fs.readFileSync(to, "utf8"));
+      fs.writeFileSync(to, JSON.stringify({ ...record, file: toFile }, null, 2));
+    }
+  }
+}
+
+function saveOriginal(
+  file: string,
+  buffer: Buffer,
+  meta: sharp.Metadata,
+  extra: { originalName?: string; exifDate?: string; crop?: CropRect | null }
+) {
+  archiveOriginal(file); // 同名的旧原图先留档，避免覆盖
+  const base = originalBase(file);
+  fs.mkdirSync(path.dirname(base), { recursive: true });
+  const ext = ORIGINAL_EXT[meta.format ?? ""] ?? "bin";
+  fs.writeFileSync(`${base}.${ext}`, buffer);
+  const record = {
+    file,
+    original: `${path.basename(base)}.${ext}`,
+    originalName: extra.originalName ?? "",
+    format: meta.format ?? "",
+    width: meta.width ?? 0,
+    height: meta.height ?? 0,
+    bytes: buffer.length,
+    sha256: createHash("sha256").update(buffer).digest("hex"),
+    exifDate: extra.exifDate ?? "",
+    uploadedAt: new Date().toISOString(),
+    crop: extra.crop ?? null,
+  };
+  fs.writeFileSync(`${base}.json`, JSON.stringify(record, null, 2));
+}
+
+export async function addPhoto(
+  buffer: Buffer,
+  input: PhotoInput,
+  crop?: CropRect | null,
+  originalName?: string
+) {
   validatePlantAndPart(input.plant, input.part);
 
-  const { data, info, meta } = await processImage(buffer, crop);
+  const exifDate = readExifDate((await sharp(buffer).metadata()).exif);
+  const date = (input.date ?? "").trim() || exifDate;
+  const rights = { author: "", date };
+  const { data, info, meta } = await processImage(buffer, crop, rights);
 
   const dir = path.join(photosDir, input.plant);
   fs.mkdirSync(dir, { recursive: true });
   const name = nextFileName(input.plant, input.part);
   fs.writeFileSync(path.join(dir, name), data, { flag: "wx" });
-  await writeVariants(path.join(dir, name), data);
+  await writeVariants(path.join(dir, name), data, rights);
+  saveOriginal(`${input.plant}/${name}`, buffer, meta, { originalName, exifDate, crop });
 
   const row: PhotoRow = {
     file: `${input.plant}/${name}`,
@@ -205,7 +304,7 @@ export async function addPhoto(buffer: Buffer, input: PhotoInput, crop?: CropRec
     caption: (input.caption ?? "").trim(),
     season: (input.season ?? "").trim(),
     location: (input.location ?? "").trim(),
-    date: (input.date ?? "").trim() || readExifDate(meta.exif),
+    date,
     author: "",
     license: "",
     width: String(info.width),
@@ -230,10 +329,11 @@ export function updatePhoto(file: string, input: PhotoInput) {
     const from = path.join(photosDir, row.file);
     const to = path.join(photosDir, input.plant, name);
     fs.renameSync(from, to);
-    // WebP 尺寸一起移动
+    // WebP 尺寸和原图一起移动
     variantFiles(from).forEach((v, i) => {
       if (fs.existsSync(v)) fs.renameSync(v, variantFiles(to)[i]);
     });
+    moveOriginal(row.file, `${input.plant}/${name}`);
     // 原植物文件夹空了就删掉
     const oldDir = path.dirname(from);
     if (fs.readdirSync(oldDir).length === 0) fs.rmdirSync(oldDir);
@@ -263,9 +363,10 @@ export async function cropPhoto(file: string, crop: CropRect) {
   const full = path.resolve(photosDir, file);
   if (!full.startsWith(photosDir + path.sep)) throw new Error("非法路径");
 
-  const { data, info } = await processImage(fs.readFileSync(full), crop);
+  const rights = { author: row.author, date: row.date };
+  const { data, info } = await processImage(fs.readFileSync(full), crop, rights);
   fs.writeFileSync(full, data);
-  await writeVariants(full, data);
+  await writeVariants(full, data, rights);
   Object.assign(row, {
     width: String(info.width),
     height: String(info.height),
@@ -282,6 +383,7 @@ export function deletePhoto(file: string) {
   const full = path.resolve(photosDir, file);
   if (!full.startsWith(photosDir + path.sep)) throw new Error("非法路径");
   [full, ...variantFiles(full)].forEach((f) => fs.existsSync(f) && fs.unlinkSync(f));
+  archiveOriginal(file);
   // 植物文件夹空了就一起删掉
   const dir = path.dirname(full);
   if (dir !== photosDir && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);

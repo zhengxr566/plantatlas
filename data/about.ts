@@ -20,6 +20,11 @@ export const about = {
   contact: "【联系邮箱，例如：hello@plantatlasworld.com】",
 };
 
+// 只需要联系方式时（例如图片授权页）
+export function isContactReady() {
+  return !about.contact.includes("【");
+}
+
 export function isAboutReady() {
   return !Object.values(about).some((value) => value.includes("【"));
 }
