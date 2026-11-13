@@ -109,7 +109,7 @@ export default function AboutPage() {
       <ul>
         <li>{plants.length} 种植物，其中 {plantsWithPhotos} 种已有实拍图</li>
         <li>{photos.length} 张实拍照片</li>
-        <li>{indexablePairs} 组带实拍对比或核心区别的植物对比</li>
+        {indexablePairs > 0 && <li>{indexablePairs} 组带实拍对比或核心区别的植物对比</li>}
       </ul>
       <p>
         可以从<Link href="/lineage" className="link">谱系地图</Link>浏览全部植物，或查看
