@@ -9,6 +9,16 @@ export type IdentifyPage = {
   confuseWith?: string[];
 };
 
+// 植物是否属于某个识别页：标签命中任意一条规则即可。
+// 标题是“…树…”的页面只收录木本植物，菊花这类草本不算“树”
+export function matchesIdentifyPage(
+  plant: { tags?: string[]; habit?: string },
+  page: Pick<IdentifyPage, "title" | "tagRules">
+) {
+  if (page.title.includes("树") && (plant.habit ?? "").includes("草本")) return false;
+  return (plant.tags ?? []).some((tag) => page.tagRules.includes(tag));
+}
+
 export const identifyPages: IdentifyPage[] = [
   {
     slug: "needle-leaf-trees",

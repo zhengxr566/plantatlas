@@ -1,6 +1,7 @@
 // 从实拍图中挑选代表图片：首页、识别页等用来展示的图片
 import type { Plant } from "@/lib/loadPlants";
 import { groupPhotosByPlant, type PlantPhoto } from "@/lib/loadPhotos";
+import { matchesIdentifyPage, type IdentifyPage } from "@/data/identify";
 
 // 没有指定特征时，优先用最能代表整株植物的部位
 const PART_PRIORITY = ["habit", "leaf", "autumn", "flower", "fruit", "cone", "bark", "branch", "seed", "bud"];
@@ -68,14 +69,14 @@ export function photoByPlant(photos: PlantPhoto[], preferTags: string[] = []) {
 }
 
 // 识别入口的封面：每个入口用匹配植物中最符合主题的实拍，尽量不和前面的入口重复
-export function identifyCovers<T extends { tagRules: string[] }>(
+export function identifyCovers<T extends Pick<IdentifyPage, "title" | "tagRules">>(
   pages: T[],
   plants: Plant[],
   photos: PlantPhoto[]
 ) {
   const used = new Set<string>();
   return pages.map((page) => {
-    const matched = plants.filter((p) => (p.tags ?? []).some((t) => page.tagRules.includes(t)));
+    const matched = plants.filter((p) => matchesIdentifyPage(p, page));
     const candidates = themePhotos(photos, matched, page.tagRules, matched.length);
     // 只在同样符合主题的图片之间换，避免为了不重复而选了不相关的图
     const best = candidates.length > 0 ? matchCount(candidates[0].photo, page.tagRules) : 0;

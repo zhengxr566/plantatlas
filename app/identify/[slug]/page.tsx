@@ -4,33 +4,12 @@ import { notFound } from "next/navigation";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import { articleMeta } from "@/lib/structuredData";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { identifyPages } from "@/data/identify";
+import { identifyPages, matchesIdentifyPage } from "@/data/identify";
 import { loadPlants } from "@/lib/loadPlants";
 import { getPart } from "@/data/parts";
 import { buildImageObjectJsonLd, loadPhotos } from "@/lib/loadPhotos";
 import { photoByPlant, themePhotos } from "@/lib/photoPicks";
 import PhotoCard from "@/app/components/PhotoCard";
-
-function toList(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map(String).map((v) => v.trim()).filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    return value
-      .split(/[|、,，;；]/)
-      .map((v) => v.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-}
-
-function matchPlantByTags(plant: any, tagRules: string[]) {
-  const plantTags = toList(plant.tags);
-
-  return tagRules.some((tag) => plantTags.includes(tag));
-}
 
 function buildTitle(page: any) {
   return `${page.title}｜常见植物识别方法`;
@@ -83,9 +62,7 @@ export default async function IdentifyPage({
 
   const plants = loadPlants();
 
-  const matchedPlants = plants.filter((plant) =>
-    matchPlantByTags(plant, page.tagRules || [])
-  );
+  const matchedPlants = plants.filter((plant) => matchesIdentifyPage(plant, page));
 
   // 实拍示例：匹配植物中照片标签最符合本页主题的图片
   const photos = loadPhotos();
