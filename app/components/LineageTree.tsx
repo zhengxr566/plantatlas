@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BRANCH_LEVELS, type LineageNode, type LineageLevel } from "@/lib/lineage";
 import { track } from "@/lib/analytics";
@@ -481,6 +482,9 @@ export default function LineageTree({
   const [expanded, setExpanded] = useState<Set<string>>(() => defaultExpanded(data, compact));
   const [transform, setTransform] = useState<Transform>({ x: 20, y: 20, k: 0.8 });
   const [highlight, setHighlight] = useState<string | null>(null);
+  // 显示简介框的植物；画布尺寸用于摆放简介框
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [focusId, setFocusId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [notFound, setNotFound] = useState(false);
@@ -585,6 +589,7 @@ export default function LineageTree({
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       sizeRef.current = { width, height };
+      setCanvasSize({ width, height });
       const isNarrow = width < NARROW_WIDTH;
       setNarrow(isNarrow);
       if (!fitted.current && width > 0) {
@@ -712,11 +717,23 @@ export default function LineageTree({
     fitCurrent(nextLayout, target);
   }
 
+  // 第一次点击植物：显示简介框；再点同一种植物：进入植物页面
   function openPlant(e: React.MouseEvent, it: Item) {
     e.preventDefault();
     if (moved.current || !it.node.href) return;
-    track("lineage_plant_click", { plant: it.node.name, view: "card" });
-    router.push(it.node.href);
+    if (selectedId === it.id) {
+      track("lineage_plant_click", { plant: it.node.name, view: "card" });
+      router.push(it.node.href);
+      return;
+    }
+    track("lineage_plant_preview", { plant: it.node.name });
+    setSelectedId(it.id);
+    setHighlight(it.id);
+  }
+
+  function closePop() {
+    setSelectedId(null);
+    setHighlight(null);
   }
 
   function setAll(open: boolean) {
@@ -752,7 +769,10 @@ export default function LineageTree({
   // 键盘：Esc 返回上一级，+ / - 缩放，0 适应窗口
   function onKeyDown(e: React.KeyboardEvent) {
     if ((e.target as HTMLElement).tagName === "INPUT") return;
-    if (e.key === "Escape" && focusId) {
+    if (e.key === "Escape" && selectedId) {
+      e.preventDefault();
+      closePop();
+    } else if (e.key === "Escape" && focusId) {
       e.preventDefault();
       focusOn(parentId(focusId));
     } else if (e.key === "+" || e.key === "=") {
@@ -785,6 +805,27 @@ export default function LineageTree({
     segsByTone.set(tone, [...(segsByTone.get(tone) ?? []), s]);
   });
   const stop = (e: React.PointerEvent) => e.stopPropagation();
+
+  // 简介框：跟随植物所在位置，放在右侧（放不下时放左侧）；手机上固定在画布底部
+  const selItem = selectedId
+    ? layout.items.find((i) => i.id === selectedId && (i.kind === "tip" || i.kind === "plant"))
+    : undefined;
+  const selCard = selItem?.node.card;
+  const POP_W = 300;
+  const POP_H = 330; // 简介框的大致高度（含图片、要点、标签和按钮）
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, Math.max(lo, hi)));
+  let popStyle: React.CSSProperties | undefined;
+  if (selItem && !narrow) {
+    const sx = selItem.x * k + x;
+    const sy = selItem.y * k + y;
+    let left = sx + selItem.w * k + 12;
+    if (left + POP_W > canvasSize.width - 10) left = sx - POP_W - 12;
+    popStyle = {
+      left: clamp(left, 10, canvasSize.width - POP_W - 10),
+      top: clamp(sy - 10, 52, canvasSize.height - POP_H - 10),
+      maxHeight: canvasSize.height - 20,
+    };
+  }
 
   return (
     <div
@@ -889,7 +930,16 @@ export default function LineageTree({
           )}
         </div>
 
-        <svg ref={svgRef} width="100%" height="100%" aria-label={`${data.name}的谱系树`}>
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="100%"
+          aria-label={`${data.name}的谱系树`}
+          onClick={(e) => {
+            // 点击空白处或分类：关闭简介框
+            if (selectedId && !moved.current && !(e.target as Element).closest(".lineage-tip, .lineage-card")) closePop();
+          }}
+        >
           <defs>
             <clipPath id="lineage-thumb-clip" clipPathUnits="objectBoundingBox">
               <rect width="1" height="1" rx="0.15" ry="0.15" />
@@ -1123,10 +1173,78 @@ export default function LineageTree({
             })}
           </g>
         </svg>
+
+        {/* 植物简介：第一次点击植物时显示，右下角进入植物页面 */}
+        {selItem && (
+          <div
+            className={narrow ? "lineage-pop is-sheet" : "lineage-pop"}
+            style={popStyle}
+            role="dialog"
+            aria-label={`${selItem.node.name}简介`}
+            onPointerDown={stop}
+          >
+            <button type="button" className="lineage-pop-close" aria-label="关闭" onClick={() => closePop()}>
+              ×
+            </button>
+            <div className="lineage-pop-head">
+              {selItem.node.photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={variantPath(selItem.node.photo, 320)} alt={selItem.node.name} />
+              ) : (
+                <span className="lineage-pop-initial" aria-hidden="true">
+                  {selItem.node.name.slice(0, 1)}
+                </span>
+              )}
+              <div>
+                <strong>{selItem.node.name}</strong>
+                {selCard?.latin && <em>{selCard.latin}</em>}
+                {selCard && selCard.aliases.length > 0 && <span>又名{selCard.aliases.slice(0, 3).join("、")}</span>}
+                {selCard && (
+                  <span className="lineage-pop-taxon">
+                    {selCard.family} · {selCard.genus}
+                  </span>
+                )}
+              </div>
+            </div>
+            {selCard && (selCard.habit || selCard.points.length > 0) && (
+              <dl className="lineage-pop-points">
+                {selCard.habit && (
+                  <div>
+                    <dt>生活型</dt>
+                    <dd>{selCard.habit}</dd>
+                  </div>
+                )}
+                {selCard.points.map((p) => (
+                  <div key={p.label}>
+                    <dt>{p.label}</dt>
+                    <dd>{p.text}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {selCard && selCard.tags.length > 0 && (
+              <ul className="lineage-pop-tags">
+                {selCard.tags.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+            <div className="lineage-pop-foot">
+              <span>{selItem.node.photoCount ? `${selItem.node.photoCount} 张实拍图` : "实拍图整理中"}</span>
+              <Link
+                href={selItem.node.href ?? "#"}
+                className="lineage-pop-go"
+                onClick={() => track("lineage_plant_click", { plant: selItem.node.name, view: "popup" })}
+              >
+                进入页面 →
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       <p className="lineage-tree-hint">
-        <span className="lineage-photo-legend" aria-hidden="true" /> 有实拍图 · 点击分类展开并定位，再点一次收起 ·
+        <span className="lineage-photo-legend" aria-hidden="true" /> 有实拍图 · 点击分类展开并定位，再点一次收起 · 点击植物查看简介 ·
         Esc 返回上一级 · 滚轮上下滚动，Ctrl + 滚轮或双指缩放
       </p>
     </div>

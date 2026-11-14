@@ -32,7 +32,10 @@ export type LineageNode = {
     aliases: string[];
     habit: string;
     family: string;
+    genus: string;
     summary: string;
+    // 简介框中的识别要点：叶、花、果（各取第一句）
+    points: { label: string; text: string }[];
     tags: string[];
   };
   children?: LineageNode[];
@@ -76,6 +79,19 @@ function summarize(plant: Plant) {
   return first.length > 18 ? `${first.slice(0, 18)}…` : first;
 }
 
+// 简介框：叶、花、果描述的第一句（太长时截断）
+function keyPoints(plant: Plant) {
+  const first = (text?: string) => {
+    const s = (text || "").split(/[；;。]/)[0].trim();
+    return s.length > 30 ? `${s.slice(0, 30)}…` : s;
+  };
+  return [
+    { label: "叶", text: first(plant.leaf) },
+    { label: "花", text: first(plant.flower) },
+    { label: "果", text: first(plant.fruit) },
+  ].filter((p) => p.text);
+}
+
 function pickPhoto(photos: PlantPhoto[]) {
   return (
     photos.find((p) => p.part === "habit") ??
@@ -113,7 +129,9 @@ export function buildLineageTree(plants: Plant[], photos: PlantPhoto[]): Lineage
         aliases: plant.aliases,
         habit: plant.habit ?? "",
         family: plant.family,
+        genus: plant.genus,
         summary: summarize(plant),
+        points: keyPoints(plant),
         tags: featureTags(plant)
           .sort((a, b) => (df.get(a) ?? 0) - (df.get(b) ?? 0))
           .slice(0, 3),
