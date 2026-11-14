@@ -124,7 +124,20 @@ function nextFileName(plant: string, part: string) {
   }
 }
 
-// 从 EXIF 中读取拍摄日期（YYYY:MM:DD HH:MM:SS）
+// iPhone 的 HEIC 用 HEVC 编码，sharp 的预编译版本不能解码，先用 heic-convert 转成 JPEG。
+// 解码时会按 HEIC 中记录的方向转正，所以转出的 JPEG 不需要再旋转。
+export function isHeic(buffer: Buffer) {
+  if (buffer.subarray(4, 8).toString("latin1") !== "ftyp") return false;
+  // 主品牌和兼容品牌都在文件开头的 ftyp 盒里
+  return /hei[cxms]|hev[cx]/.test(buffer.subarray(8, 40).toString("latin1"));
+}
+
+export async function decodeHeic(buffer: Buffer, quality = 0.95) {
+  const { default: convert } = await import("heic-convert");
+  return Buffer.from(await convert({ buffer, format: "JPEG", quality }));
+}
+
+// 从 EXIF 中读取拍摄日期（YYYY:MM:DD HH:MM:SS）。HEIC 直接传整个文件
 function readExifDate(exif?: Buffer) {
   const match = exif?.toString("latin1").match(/(\d{4}):(\d{2}):(\d{2}) \d{2}:\d{2}:\d{2}/);
   return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
@@ -284,17 +297,24 @@ export async function addPhoto(
 ) {
   validatePlantAndPart(input.plant, input.part);
 
-  const exifDate = readExifDate((await sharp(buffer).metadata()).exif);
+  const heic = isHeic(buffer);
+  const source = heic ? await decodeHeic(buffer) : buffer;
+  const exifDate = readExifDate(heic ? buffer : (await sharp(buffer).metadata()).exif);
   const date = (input.date ?? "").trim() || exifDate;
   const rights = { author: "", date };
-  const { data, info, meta } = await processImage(buffer, crop, rights);
+  const { data, info, meta } = await processImage(source, crop, rights);
 
   const dir = path.join(photosDir, input.plant);
   fs.mkdirSync(dir, { recursive: true });
   const name = nextFileName(input.plant, input.part);
   fs.writeFileSync(path.join(dir, name), data, { flag: "wx" });
   await writeVariants(path.join(dir, name), data, rights);
-  saveOriginal(`${input.plant}/${name}`, buffer, meta, { originalName, exifDate, crop });
+  // 原图保存上传的文件本身（HEIC 保持 HEIC）
+  saveOriginal(`${input.plant}/${name}`, buffer, heic ? { ...meta, format: "heif" } : meta, {
+    originalName,
+    exifDate,
+    crop,
+  });
 
   const row: PhotoRow = {
     file: `${input.plant}/${name}`,

@@ -16,7 +16,14 @@ type QueueItem = {
   // 裁剪区域（原图像素）和裁剪后的小预览
   crop?: CropRect | null;
   cropPreview?: string;
+  // HEIC 正在转换成可预览的 JPEG
+  converting?: boolean;
 };
+
+// Windows 上 HEIC 文件的 type 可能是空字符串，所以也看扩展名
+function isHeicFile(file: File) {
+  return /^image\/hei[cf]/.test(file.type) || /\.hei[cf]$/i.test(file.name);
+}
 
 const EMPTY_META: PhotoMeta = {
   plant: "",
@@ -55,13 +62,14 @@ export default function UploadTab({
   }
 
   function addFiles(files: FileList | File[]) {
-    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    setQueue((q) => [
-      ...q,
-      ...images.map((file) => ({
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/") || isHeicFile(f));
+    const items: QueueItem[] = images.map((file) => {
+      const heic = isHeicFile(file);
+      return {
         id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
         file,
-        preview: URL.createObjectURL(file),
+        preview: heic ? "" : URL.createObjectURL(file),
+        converting: heic,
         meta: {
           ...defaults,
           // 按默认的植物和部位预选标签
@@ -72,8 +80,22 @@ export default function UploadTab({
           caption: "",
         },
         status: "pending" as const,
-      })),
-    ]);
+      };
+    });
+    setQueue((q) => [...q, ...items]);
+    items.filter((item) => item.converting).forEach((item) => convertPreview(item.id, item.file));
+  }
+
+  async function convertPreview(id: string, file: File) {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/photos/preview", { method: "POST", body: form });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "HEIC 转换失败");
+      updateItem(id, { preview: URL.createObjectURL(await res.blob()), converting: false });
+    } catch (error) {
+      updateItem(id, { converting: false, error: (error as Error).message });
+    }
   }
 
   function updateItem(id: string, patch: Partial<QueueItem>) {
@@ -83,7 +105,7 @@ export default function UploadTab({
   function removeItem(id: string) {
     setQueue((q) => {
       const item = q.find((i) => i.id === id);
-      if (item) URL.revokeObjectURL(item.preview);
+      if (item?.preview) URL.revokeObjectURL(item.preview);
       return q.filter((i) => i.id !== id);
     });
   }
@@ -154,13 +176,13 @@ export default function UploadTab({
       >
         <strong>拖入图片，或点击选择</strong>
         <span className="muted">
-          支持 JPG / PNG / WebP。上传时自动压缩到长边 1600px，并去除 GPS 等 EXIF 信息。
-          iPhone 的 HEIC 照片请先导出为 JPG（或在“设置 › 相机 › 格式”中选择“兼容性最佳”）。
+          支持 JPG / PNG / WebP / HEIC（iPhone 照片）。上传时自动压缩到长边 1600px，并去除 GPS 等 EXIF 信息。
+          HEIC 会自动转换，每张需要几秒。
         </span>
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif"
+          accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif,.heic,.heif"
           multiple
           hidden
           onChange={(e) => {
@@ -191,8 +213,14 @@ export default function UploadTab({
       <div className="queue">
         {queue.map((item) => (
           <article key={item.id} className={`queue-item queue-${item.status}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.cropPreview ?? item.preview} alt="" className="queue-preview" />
+            {item.cropPreview || item.preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.cropPreview ?? item.preview} alt="" className="queue-preview" />
+            ) : (
+              <div className="queue-preview queue-preview-empty">
+                {item.converting ? "HEIC 转换中…" : "无法预览"}
+              </div>
+            )}
             <div className="queue-body">
               {item.status === "done" && item.saved ? (
                 <div className="queue-saved">
@@ -224,7 +252,12 @@ export default function UploadTab({
                     >
                       {item.status === "uploading" ? "上传中…" : "上传"}
                     </button>
-                    <button type="button" className="btn" onClick={() => setCropping(item)}>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={!item.preview}
+                      onClick={() => setCropping(item)}
+                    >
                       {item.crop ? "重新裁剪" : "裁剪"}
                     </button>
                     {item.crop && (

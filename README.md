@@ -48,7 +48,7 @@ npm run build
 
 后台改动保存后，本地网站页面立刻更新，可以先在 http://localhost:3000 确认，再点“发布到网站”。
 
-> iPhone 的 HEIC 照片需要先导出为 JPG（或在“设置 › 相机 › 格式”中选择“兼容性最佳”）。
+> 支持直接上传 iPhone 的 HEIC 照片：后台会自动转换（每张约 2～3 秒），原图仍以 HEIC 保存在 `originals/`。
 
 ## 访客补充标签（需要 Upstash Redis）
 

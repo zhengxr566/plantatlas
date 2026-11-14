@@ -834,3 +834,12 @@
   padding: 4px 8px;
   font-size: 12px;
 }
+
+.admin .queue-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  color: #6b7a6b;
+  font-size: 0.9rem;
+}
