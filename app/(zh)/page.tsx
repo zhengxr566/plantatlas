@@ -11,6 +11,7 @@ import AtlasLayout from "@/app/components/AtlasLayout";
 import JsonLd from "@/app/components/JsonLd";
 import PhotoCard from "@/app/components/PhotoCard";
 import { siteJsonLd } from "@/lib/structuredData";
+import { HOME_ALTERNATES } from "@/lib/ja";
 
 export const metadata: Metadata = {
   title: "植物谱系图谱｜植物识别、分类与常见植物对比",
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
     "Plant Atlas World 提供常见木本植物识别、植物分类谱系、科属关系和相似植物对比，帮助用户通过叶片、花、果实、树皮和生长习性判断植物。",
   alternates: {
     canonical: "https://plantatlasworld.com",
+    languages: HOME_ALTERNATES,
   },
   openGraph: {
     title: "植物谱系图谱｜植物识别、分类与常见植物对比",

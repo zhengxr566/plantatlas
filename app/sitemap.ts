@@ -11,6 +11,7 @@ import {
 } from "@/lib/loadPhotos";
 import { isTaxonomyIndexable } from "@/lib/taxonomy";
 import { isAboutReady } from "@/data/about";
+import { HOME_ALTERNATES, jaPlantAlternates, jaPlantPath, jaPlants } from "@/lib/ja";
 
 // lastmod 只使用真实日期（图片或手写对比的 updated 列）；没有真实日期时不写，
 // 避免每次部署都把所有页面标成“刚更新”，导致 Google 忽略整个 sitemap 的 lastmod
@@ -30,6 +31,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // 只提交可收录的对比页（有实拍图对比或手写要点）
   const comparePairs = generateComparePairs().filter((p) => p.indexable);
   const photosByPlant = groupPhotosByPlant(loadPhotos());
+  const jaSlugs = new Set(jaPlants.map((p) => p.slug));
 
   function photosOf(plantSlug: string, parts?: string[]) {
     return (photosByPlant.get(plantSlug) ?? []).filter(
@@ -63,7 +65,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
 
   return [
-    { url: baseUrl, priority: 1 },
+    { url: baseUrl, priority: 1, alternates: { languages: HOME_ALTERNATES } },
     { url: `${baseUrl}/identify`, priority: 0.95 },
     { url: `${baseUrl}/compare`, priority: 0.95 },
     { url: `${baseUrl}/lineage`, priority: 0.9 },
@@ -71,6 +73,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...plants.map((p) => ({
       url: `${baseUrl}/plant/${p.slug}`,
       priority: 0.8,
+      // 有日语版的植物：标注 hreflang
+      ...(jaSlugs.has(p.slug) ? { alternates: { languages: jaPlantAlternates(p.slug).languages } } : {}),
       images: photoUrls(p.slug),
       ...lastModified(photoDates(photosOf(p.slug))),
     })),
@@ -144,5 +148,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/privacy`, priority: 0.2 },
     // data/about.ts 填写完成后才提交“关于本站”
     ...(isAboutReady() ? [{ url: `${baseUrl}/about`, priority: 0.4 }] : []),
+
+    // 日语版：只有写了日语内容的植物
+    { url: `${baseUrl}/ja`, priority: 0.95, alternates: { languages: HOME_ALTERNATES } },
+    ...jaPlants.map((ja) => ({
+      url: `${baseUrl}${jaPlantPath(ja.slug)}`,
+      priority: 0.85,
+      images: photoUrls(ja.slug),
+      alternates: { languages: jaPlantAlternates(ja.slug).languages },
+      ...lastModified([ja.updated, ...photoDates(photosOf(ja.slug))]),
+    })),
+    { url: `${baseUrl}/ja/about`, priority: 0.4 },
   ];
 }

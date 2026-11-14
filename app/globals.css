@@ -2236,3 +2236,214 @@ a.plant-fact:hover {
     transition: none;
   }
 }
+
+/* =========================
+   日本語版（app/(ja)）
+========================= */
+
+/* 日本語の字形で表示する（Microsoft YaHei だと中国語の字形になる） */
+body.ja {
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
+}
+
+.ja-page {
+  max-width: 920px;
+  width: 100%;
+}
+
+.ja .document-panel {
+  font-size: 15px;
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+}
+
+.ja .document-panel h1 {
+  line-height: 1.35;
+}
+
+.ja-kanji {
+  margin-left: 4px;
+  font-size: 0.62em;
+  font-weight: 500;
+  color: #5f7a62;
+}
+
+.ja-lang,
+.plant-fact-lang {
+  border: 1px solid #c9dcc6;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 13px;
+  color: #2f6b3a;
+  text-decoration: none;
+}
+
+.ja-lang:hover,
+.plant-fact-lang:hover {
+  background: #eef6ec;
+}
+
+.ja-hero {
+  margin: 16px 0;
+}
+
+.ja-hero img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.ja-hero figcaption {
+  display: block;
+  margin-top: 6px;
+}
+
+.ja-note {
+  font-size: 13px;
+  color: #5f7a62;
+}
+
+.ja-updated {
+  margin-top: 32px;
+  font-size: 13px;
+  color: #7a8f7c;
+}
+
+.ja-gallery {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.ja-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 0;
+  margin: 20px 0 8px;
+  list-style: none;
+}
+
+.document-panel .ja-features li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid #dce8da;
+  border-radius: 12px;
+  background: #f7fbf6;
+}
+
+.ja-features strong {
+  color: #1f4a29;
+}
+
+.ja-features span {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #4d6550;
+}
+
+.ja-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.document-panel .ja-cards li {
+  margin: 0;
+}
+
+.ja-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid #dce8da;
+  border-radius: 12px;
+  background: #fff;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ja-card:hover {
+  border-color: #2f6b3a;
+  box-shadow: 0 4px 14px rgba(31, 74, 41, 0.12);
+}
+
+.ja-card img,
+.ja-card-empty {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.ja-card-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eef6ec, #dcebd8);
+  color: #5f8a63;
+  font-size: 44px;
+  font-weight: 700;
+}
+
+.ja-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 12px;
+}
+
+.ja-card-body strong {
+  color: #163d22;
+  font-size: 16px;
+}
+
+.ja-card-body small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5f7a62;
+}
+
+.ja-card-body em {
+  font-size: 12px;
+  color: #7a8f7c;
+}
+
+.ja-card-body span {
+  font-size: 12px;
+  color: #4d6550;
+}
+
+.not-found-panel {
+  max-width: 560px;
+  margin: 60px auto;
+}
+
+@media (max-width: 640px) {
+  .ja-header .header-nav {
+    display: none;
+  }
+
+  .ja .document-panel {
+    padding: 20px 16px;
+  }
+
+  .ja-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+.document-panel .ja-features,
+.document-panel .ja-cards {
+  padding-left: 0;
+}
+
+/* img 的 height 属性会覆盖 aspect-ratio，改成 auto 让卡片图片统一为 4:3 */
+.ja-card img {
+  height: auto;
+  display: block;
+}

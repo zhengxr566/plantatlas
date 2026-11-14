@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export default function AdSlot({ slot = defaultSlot }: { slot?: string }) {
+export default function AdSlot({ slot = defaultSlot, label = "广告" }: { slot?: string; label?: string }) {
   useEffect(() => {
     if (!client || !slot) return;
     try {
@@ -28,7 +28,7 @@ export default function AdSlot({ slot = defaultSlot }: { slot?: string }) {
   if (!client || !slot) return null;
 
   return (
-    <div className="ad-slot" aria-label="广告">
+    <div className="ad-slot" aria-label={label}>
       <ins
         className="adsbygoogle"
         style={{ display: "block" }}

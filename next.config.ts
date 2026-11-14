@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 中文版和日语版各有一个根布局（app/(zh)、app/(ja)），找不到页面时用 app/global-not-found.tsx
+  experimental: {
+    globalNotFound: true,
+  },
   // 公开的标签建议接口在运行时读取这些数据文件
   outputFileTracingIncludes: {
     "/api/suggest-tags": ["./tags.md", "./data/photos.csv"],
