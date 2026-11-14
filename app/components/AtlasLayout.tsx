@@ -1,10 +1,18 @@
 import AtlasShell from "./AtlasShell";
-import LineageSidebar, { type SidebarTree } from "./LineageSidebar";
+import LineageSidebar, { type SidebarNode } from "./LineageSidebar";
 import type { SearchEntry } from "./SiteSearch";
 import { identifyPages } from "@/data/identify";
 import { generateComparePairs } from "@/lib/generateComparePairs";
 import { loadPhotos } from "@/lib/loadPhotos";
 import { loadPlants } from "@/lib/loadPlants";
+import { buildLineageTree, type LineageNode } from "@/lib/lineage";
+
+// 侧栏只需要名称、链接和学名
+function toSidebar(node: LineageNode): SidebarNode {
+  return node.level === "plant"
+    ? { name: node.name, href: node.href, latin: node.card?.latin }
+    : { name: node.name, children: node.children?.map(toSidebar) };
+}
 
 // 侧栏数据在服务端从 plants.csv 生成，和正文使用同一份数据
 function buildSidebarData() {
@@ -25,25 +33,8 @@ function buildSidebarData() {
     .slice(0, 6)
     .map((p) => ({ slug: p.slug, title: p.title }));
 
-  const tree: SidebarTree = {};
-  plants.forEach((plant) => {
-    const division = plant.division || "未分类类群";
-    const className = plant.className || "未分类纲";
-    const order = plant.order || "未分类目";
-    const family = plant.family || "未分类科";
-    const genus = plant.genus || "未分类属";
-
-    tree[division] ??= {};
-    tree[division][className] ??= {};
-    tree[division][className][order] ??= {};
-    tree[division][className][order][family] ??= {};
-    tree[division][className][order][family][genus] ??= [];
-    tree[division][className][order][family][genus].push({
-      slug: plant.slug,
-      nameCn: plant.nameCn,
-      nameLatin: plant.nameLatin,
-    });
-  });
+  // 与谱系地图同一棵树（被子植物按 APG IV 演化支）
+  const tree = (buildLineageTree(plants, []).children ?? []).map(toSidebar);
 
   return {
     featuredPlants,

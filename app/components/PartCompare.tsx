@@ -2,7 +2,7 @@ import Link from "next/link";
 import PartPlaceholder from "@/app/components/PartPlaceholder";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import TrackLink from "@/app/components/TrackLink";
-import { getPart } from "@/data/parts";
+import { getPart, plantPart } from "@/data/parts";
 import { getPartTags, type PlantPhoto } from "@/lib/loadPhotos";
 
 type PlantName = { slug: string; nameCn: string; nameLatin?: string };
@@ -98,9 +98,7 @@ export default function PartCompare({
   return (
     <section className="part-compare">
       <Heading>
-        {plantA.nameCn}
-        {part.noun} vs {plantB.nameCn}
-        {part.noun}
+        {plantPart(plantA.nameCn, part.noun)} vs {plantPart(plantB.nameCn, part.noun)}
       </Heading>
 
       <div className="part-compare-grid">
@@ -196,8 +194,7 @@ export default function PartCompare({
             event="compare_part_click"
             params={{ pair: pairSlug, part: partSlug, link: "all_photos" }}
           >
-            查看{plantA.nameCn}和{plantB.nameCn}
-            {part.noun}的区别（全部对比图）›
+            查看{plantA.nameCn}和{plantPart(plantB.nameCn, part.noun)}的区别（全部对比图）›
           </TrackLink>
         </p>
       )}

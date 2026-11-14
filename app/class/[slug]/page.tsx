@@ -5,6 +5,7 @@ import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { loadPlants } from "@/lib/loadPlants";
 import { taxonomyRobots } from "@/lib/taxonomy";
+import { clades } from "@/data/clades";
 
 export async function generateMetadata({
   params,
@@ -45,6 +46,15 @@ export default async function ClassPage({
   if (list.length === 0) notFound();
 
   const first = list[0];
+  // 被子植物（木兰纲）在 APG IV 中按演化支划分：列出最上一级的演化支
+  const topClades = Array.from(
+    new Map(
+      list
+        .map((p) => p.groups[0])
+        .filter((g) => g?.level === "clade")
+        .map((g) => [g.slug, { ...g, count: list.filter((p) => p.groups[0]?.slug === g.slug).length }])
+    ).values()
+  ).sort((a, b) => clades.findIndex((c) => c.slug === a.slug) - clades.findIndex((c) => c.slug === b.slug));
 
   const orders = Array.from(
     new Map(
@@ -71,7 +81,9 @@ export default async function ClassPage({
       <h1>{first.className}植物</h1>
 
       <p>
-        {first.className}属于{first.division}中的一个纲。
+        {topClades.length > 0
+          ? `在现代被子植物分类（APG IV）中，${first.className}即全部被子植物，不再细分亚纲，而是按演化支组织各个目。`
+          : `${first.className}属于${first.division}中的一个纲。`}
         当前本站收录 {list.length} 种{first.className}植物，
         包括{list.slice(0, 8).map((p) => p.nameCn).join("、")}等。
       </p>
@@ -85,6 +97,22 @@ export default async function ClassPage({
         <span className="lineage-arrow">›</span>
         <span className="lineage-node">{first.className}</span>
       </div>
+
+      {topClades.length > 0 && (
+        <>
+          <h2>主要演化支（APG IV）</h2>
+          <ul className="card-grid compact">
+            {topClades.map((clade) => (
+              <li key={clade.slug}>
+                <Link href={clade.href ?? "#"} className="link">
+                  {clade.name}
+                </Link>
+                <span className="meta"> · {clade.count} 种</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h2>包含哪些目</h2>
 

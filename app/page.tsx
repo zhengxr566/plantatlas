@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "植物谱系图谱｜植物识别、分类与常见植物对比",
     description:
-      "按照界、门、纲、目、科、属、种组织植物信息，提供植物识别、相似植物对比和谱系关系查询。",
+      "按现代植物分类（APG IV）组织植物信息，提供植物识别、相似植物对比和谱系关系查询。",
     url: "https://plantatlasworld.com",
     siteName: "Plant Atlas World",
     type: "website",
@@ -56,7 +56,7 @@ export default function Home() {
           <h1>植物谱系图谱</h1>
           <p>
             Plant Atlas World 是一个以植物分类关系为核心的植物识别与谱系图谱网站。
-            本站从常见木本植物开始，按照界、门、纲、目、科、属、种组织植物信息，
+            本站从常见木本植物开始，按现代植物分类（被子植物采用 APG IV 演化支）组织植物信息，
             并通过叶片、花、果实、树皮、生长环境和相似植物对比，帮助用户判断植物。
           </p>
           <div className="home-hero-actions">

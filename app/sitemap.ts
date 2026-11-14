@@ -51,6 +51,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     return [...counts].filter(([, n]) => isTaxonomyIndexable(n)).map(([slug]) => slug);
   }
 
+  // 被子植物的演化支页面（只收录谱系中显示、且至少 2 种植物的演化支）
+  function cladeSlugs() {
+    const counts = new Map<string, number>();
+    plants.forEach((p) =>
+      p.groups
+        .filter((g) => g.level === "clade")
+        .forEach((g) => counts.set(g.slug, (counts.get(g.slug) ?? 0) + 1))
+    );
+    return [...counts].filter(([, n]) => isTaxonomyIndexable(n)).map(([slug]) => slug);
+  }
+
   return [
     { url: baseUrl, priority: 1 },
     { url: `${baseUrl}/identify`, priority: 0.95 },
@@ -75,6 +86,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
     ...taxonomySlugs("classSlug").map((slug) => ({
       url: `${baseUrl}/class/${slug}`,
+      priority: 0.68,
+    })),
+
+    ...cladeSlugs().map((slug) => ({
+      url: `${baseUrl}/clade/${slug}`,
       priority: 0.68,
     })),
 

@@ -8,7 +8,8 @@ import Breadcrumb from "@/app/components/Breadcrumb";
 import LineageTree from "@/app/components/LineageTree";
 import { buildLineageTree, findLineageNode } from "@/lib/lineage";
 import { loadPhotos } from "@/lib/loadPhotos";
-import { taxonomyCrumbs } from "@/lib/structuredData";
+import { taxonSteps, taxonomyCrumbs } from "@/lib/structuredData";
+import TaxonPath from "@/app/components/TaxonPath";
 
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -90,7 +91,7 @@ export default async function GenusPage({
 
       <p>
         {first.genus}属于{first.family}，在分类位置上位于{first.order}、
-        {first.className}、{first.division}之下。
+        {first.groups.at(-1)?.name ?? first.className}、{first.division}之下。
         本页面整理本站已收录的常见{first.genus}植物，
         包括{list.slice(0, 8).map((p) => p.nameCn).join("、")}等。
       </p>
@@ -98,23 +99,7 @@ export default async function GenusPage({
       {list.length >= 2 && lineageNode && <LineageTree data={lineageNode} compact />}
 
       <h2>{first.genus}的分类位置</h2>
-      <div className="lineage-horizontal">
-        <span className="lineage-node">{first.kingdom}</span>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.division}</span>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.className}</span>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.order}</span>
-        <span className="lineage-arrow">›</span>
-
-        <Link href={`/family/${first.familySlug}`} className="lineage-node link">
-          {first.family}
-        </Link>
-
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.genus}</span>
-      </div>
+      <TaxonPath steps={[...taxonSteps(first, "family"), { name: first.genus }]} />
 
       <h2>本属收录植物</h2>
       <p>

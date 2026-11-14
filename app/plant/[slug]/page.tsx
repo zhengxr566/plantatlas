@@ -5,10 +5,11 @@ import { loadPlants, type Plant } from "@/lib/loadPlants";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { articleMeta, taxonomyCrumbs } from "@/lib/structuredData";
+import TaxonPath from "@/app/components/TaxonPath";
 import Image from "next/image";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import PartPlaceholder from "@/app/components/PartPlaceholder";
-import { getCorePartSlugs, plantParts } from "@/data/parts";
+import { getCorePartSlugs, plantPart, plantParts } from "@/data/parts";
 import AdSlot from "@/app/components/AdSlot";
 import {
   buildImageObjectJsonLd,
@@ -453,8 +454,7 @@ export default async function PlantPage({
                     href={`/plant/${plant.slug}/${part.slug}`}
                     className="link"
                   >
-                    {plant.nameCn}
-                    {part.noun}图片（{partPhotos.length}张）›
+                    {plantPart(plant.nameCn, part.noun)}图片（{partPhotos.length}张）›
                   </Link>
                 </>
               ) : (
@@ -518,27 +518,7 @@ export default async function PlantPage({
       )}
 
       <h2>{plant.nameCn}是什么植物</h2>
-      <div className="lineage-horizontal">
-        <span className="lineage-node">{plant.division}</span>
-        <span className="lineage-arrow">›</span>
-        <Link href={`/class/${plant.classSlug}`} className="lineage-node link">
-          {plant.className}
-        </Link>
-        <span className="lineage-arrow">›</span>
-        <Link href={`/order/${plant.orderSlug}`} className="lineage-node link">
-          {plant.order}
-        </Link>
-        <span className="lineage-arrow">›</span>
-        <Link href={`/family/${plant.familySlug}`} className="lineage-node link">
-          {plant.family}
-        </Link>
-        <span className="lineage-arrow">›</span>
-        <Link href={`/genus/${plant.genusSlug}`} className="lineage-node link">
-          {plant.genus}
-        </Link>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{plant.nameCn}</span>
-      </div>
+      <TaxonPath steps={[...taxonomyCrumbs(plant, "genus").slice(1), { name: plant.nameCn }]} />
       <p>
         {plant.nameCn}是{plant.division}中{plant.family}
         {plant.genus}的植物

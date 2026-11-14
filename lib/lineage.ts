@@ -1,13 +1,27 @@
-// 谱系地图的数据：植物界 › 类群 › 纲 › 目 › 科 › 属 › 种
+// 谱系地图的数据：植物界 › 类群 › 演化支（被子植物，可多层）或纲（裸子植物）› 目 › 科 › 属 › 种
 import type { Plant } from "@/lib/loadPlants";
 import type { PlantPhoto } from "@/lib/loadPhotos";
+import { ORDER_CLADE, clades } from "@/data/clades";
 
-export type LineageLevel = "root" | "division" | "class" | "order" | "family" | "genus" | "plant";
+export type LineageLevel =
+  | "root"
+  | "division"
+  | "class"
+  | "clade"
+  | "order"
+  | "family"
+  | "genus"
+  | "plant";
+
+// 目以上的分支层级：谱系地图中从上往下展开，到目开始改为列表
+export const BRANCH_LEVELS: LineageLevel[] = ["root", "division", "class", "clade"];
 
 export type LineageNode = {
   name: string;
   level: LineageLevel;
   href?: string;
+  // 学名（演化支、纲、目、科、属），谱系图中以小字显示
+  latin?: string;
   // 种：有实拍图时的缩略图（优先树形，其次叶片）
   photo?: string;
   // 该节点下有实拍图的种数（种：自己的实拍图张数）
@@ -24,13 +38,31 @@ export type LineageNode = {
   children?: LineageNode[];
 };
 
-const LEVELS: { level: LineageLevel; name: keyof Plant; slug?: keyof Plant; path?: string }[] = [
-  { level: "division", name: "division" },
-  { level: "class", name: "className", slug: "classSlug", path: "class" },
-  { level: "order", name: "order", slug: "orderSlug", path: "order" },
-  { level: "family", name: "family", slug: "familySlug", path: "family" },
-  { level: "genus", name: "genus", slug: "genusSlug", path: "genus" },
-];
+const DIVISION_LATIN: Record<string, string> = { 被子植物: "Angiosperms", 裸子植物: "Gymnosperms" };
+
+// slug（如 rosales）→ 学名（Rosales）
+function latinOf(slug?: string) {
+  return slug ? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ") : undefined;
+}
+
+type PathStep = { name: string; level: LineageLevel; href?: string; latin?: string };
+
+// 从类群到属的路径（演化支的层数因植物而异）
+function taxonPath(plant: Plant): PathStep[] {
+  const link = (path: string, slug?: string) => (slug ? `/${path}/${slug}` : undefined);
+  return [
+    { name: plant.division || "未分类", level: "division", latin: DIVISION_LATIN[plant.division] },
+    ...plant.groups.map((g) => ({
+      name: g.name,
+      level: g.level,
+      href: g.href,
+      latin: g.level === "clade" ? clades.find((c) => c.slug === g.slug)?.latin : latinOf(g.slug),
+    })),
+    { name: plant.order || "未分类", level: "order", href: link("order", plant.orderSlug), latin: latinOf(plant.orderSlug) },
+    { name: plant.family || "未分类", level: "family", href: link("family", plant.familySlug), latin: latinOf(plant.familySlug) },
+    { name: plant.genus || "未分类", level: "genus", href: link("genus", plant.genusSlug), latin: latinOf(plant.genusSlug) },
+  ];
+}
 
 // 分类名称（纲/目/科/属等）不算识别特征
 function featureTags(plant: Plant) {
@@ -61,17 +93,10 @@ export function buildLineageTree(plants: Plant[], photos: PlantPhoto[]): Lineage
 
   plants.forEach((plant) => {
     let parent = root;
-    for (const { level, name, slug, path } of LEVELS) {
-      const label = String(plant[name] || "未分类");
-      let child = parent.children!.find((c) => c.name === label && c.level === level);
+    for (const { name, level, href, latin } of taxonPath(plant)) {
+      let child = parent.children!.find((c) => c.name === name && c.level === level);
       if (!child) {
-        const slugValue = slug ? String(plant[slug] || "") : "";
-        child = {
-          name: label,
-          level,
-          href: path && slugValue ? `/${path}/${slugValue}` : undefined,
-          children: [],
-        };
+        child = { name, level, href, latin, children: [] };
         parent.children!.push(child);
       }
       parent = child;
@@ -95,6 +120,21 @@ export function buildLineageTree(plants: Plant[], photos: PlantPhoto[]): Lineage
       },
     });
   });
+
+  // 演化支和目按 APG 的分化顺序排列：同一分支下先列直接所属的目，再列下一级演化支
+  const ORDER_INDEX = Object.keys(ORDER_CLADE);
+  const rank = (node: LineageNode) => {
+    const slug = node.href?.split("/").pop() ?? "";
+    if (node.level === "order") return ORDER_INDEX.indexOf(slug) >>> 0;
+    if (node.level === "clade") return 10000 + clades.findIndex((c) => c.slug === slug);
+    return 20000;
+  };
+  const sortBranches = (node: LineageNode) => {
+    if (!node.children || !BRANCH_LEVELS.includes(node.level)) return;
+    node.children.sort((a, b) => rank(a) - rank(b));
+    node.children.forEach(sortBranches);
+  };
+  sortBranches(root);
 
   // 统计每个节点下有实拍图的种数
   const count = (node: LineageNode): number => {

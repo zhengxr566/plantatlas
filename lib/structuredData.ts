@@ -57,12 +57,18 @@ export function taxonomyCrumbs(
   plant: Plant,
   depth: "class" | "order" | "family" | "genus"
 ): Crumb[] {
+  // “class” 表示类群之下、目之上的层级：被子植物为 APG IV 演化支（可多层），裸子植物为纲
+  const groups: Crumb[] = plant.groups.map((g) => ({ name: g.name, href: g.href }));
   const levels: Crumb[] = [
-    { name: plant.className, href: plant.classSlug ? `/class/${plant.classSlug}` : undefined },
     { name: plant.order, href: plant.orderSlug ? `/order/${plant.orderSlug}` : undefined },
     { name: plant.family, href: `/family/${plant.familySlug}` },
     { name: plant.genus, href: `/genus/${plant.genusSlug}` },
   ];
-  const count = { class: 1, order: 2, family: 3, genus: 4 }[depth];
-  return [{ name: "首页", href: "/" }, { name: plant.division }, ...levels.slice(0, count)];
+  const count = { class: 0, order: 1, family: 2, genus: 3 }[depth];
+  return [{ name: "首页", href: "/" }, { name: plant.division }, ...groups, ...levels.slice(0, count)];
+}
+
+// 页面中“分类位置”一栏：植物界 › 类群 › … › 指定层级
+export function taxonSteps(plant: Plant, depth: "class" | "order" | "family" | "genus"): Crumb[] {
+  return [{ name: plant.kingdom || "植物界" }, ...taxonomyCrumbs(plant, depth).slice(1)];
 }

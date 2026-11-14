@@ -30,6 +30,7 @@ type PlantLike = {
   kingdom?: string;
   division?: string;
   className?: string;
+  groups?: { name: string }[];
   order?: string;
   family?: string;
   familySlug?: string;
@@ -627,7 +628,8 @@ export default async function ComparePage({
           </h3>
           <p>
             {text(plant1.kingdom)} › {text(plant1.division)} ›{" "}
-            {text(plant1.className)} › {text(plant1.order)} ›{" "}
+            {text(plant1.groups?.map((g) => g.name).join(" › ") || plant1.className)} ›{" "}
+            {text(plant1.order)} ›{" "}
             {plant1.familySlug ? (
               <Link href={`/family/${plant1.familySlug}`} className="link">
                 {text(plant1.family)}
@@ -655,7 +657,8 @@ export default async function ComparePage({
           </h3>
           <p>
             {text(plant2.kingdom)} › {text(plant2.division)} ›{" "}
-            {text(plant2.className)} › {text(plant2.order)} ›{" "}
+            {text(plant2.groups?.map((g) => g.name).join(" › ") || plant2.className)} ›{" "}
+            {text(plant2.order)} ›{" "}
             {plant2.familySlug ? (
               <Link href={`/family/${plant2.familySlug}`} className="link">
                 {text(plant2.family)}

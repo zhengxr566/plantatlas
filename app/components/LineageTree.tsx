@@ -2,31 +2,43 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import type { LineageNode, LineageLevel } from "@/lib/lineage";
+import { BRANCH_LEVELS, type LineageNode, type LineageLevel } from "@/lib/lineage";
 import { track } from "@/lib/analytics";
 import { variantPath } from "@/lib/imageVariants";
 
 // ---------- 布局常量（画布坐标，缩放 k=1 时等于像素） ----------
-const BOX_H = 34; // 上层（从上往下排列）节点的方框高度
-const LEVEL_GAP = 40; // 上下两层方框之间的距离（直角连线在中间转折）
-const COL_GAP = 24; // 左右相邻分支的间距
-const INDENT = 20; // 下层列表每一级的缩进
-const LIST_TOP = 10; // 方框到列表第一行的距离
-const GROUP_H = 26; // 列表中的分类行（目、科、属）高度
-const PLANT_H = 58; // 列表中的植物名片高度
+const BOX_H = 36; // 顶部（从上往下排列）节点的方框高度
+const LEVEL_GAP = 34; // 上下两层方框之间的距离（直角连线在中间转折）
+const COL_GAP = 40; // 左右相邻分支的间距
+const INDENT = 22; // 纵向树每一级的缩进
+const LIST_TOP = 10; // 方框到第一行的距离
+const GROUP_H = 28; // 分类行（演化支、目、科、属）高度
+const PLANT_H = 58; // 植物名片高度
 const PLANT_W = 236;
-const ROW_GAP = 4;
+const ROW_GAP = 5;
+
+// 各大分支的颜色（演化支、纲等），同一分支下的行、连线和数量标签使用同一种颜色
+const TONES = ["#2f855a", "#2b7a8c", "#b7791f", "#7c5aa6", "#c05671", "#3b6fb6", "#7a8b2e", "#b4572a"];
+const NEUTRAL = "#5f8a63";
+
+// 目以上的分支层级（类群、纲、演化支）
+const BRANCH = new Set<LineageLevel>(BRANCH_LEVELS);
+
+// 每行文字的字号（演化支、目更醒目）
+const ROW_FONT: Partial<Record<LineageLevel, number>> = { class: 13.5, clade: 13.5, order: 13, family: 12.5, genus: 12.5 };
 const MIN_K = 0.15;
 const MAX_K = 2.2;
 const FIT_MAX_K = 1.6; // 点击定位时最多放大到这个比例
 
-// 从这一层开始改为纵向缩进列表（之前的层级从上往下、左右展开）
+// 纵向树：从这一层开始改为纵向缩进的树（之前的层级从上往下、左右展开）。
+// 主页只把“植物界 › 裸子植物 / 被子植物”横向排开，其余页面整棵树纵向排列
 const COLUMN_DEPTH: Record<LineageLevel, number> = {
-  root: 2, // 植物界 › 类群 › 纲（纲为列，下面是目、科、属、种的列表）
-  division: 1,
+  root: 1,
+  division: 0,
   class: 0,
-  order: 1,
-  family: 1, // 科页面：每个属一列
+  clade: 0,
+  order: 0,
+  family: 0,
   genus: 0,
   plant: 0,
 };
@@ -37,7 +49,12 @@ type Vis = { id: string; node: LineageNode; depth: number; open: boolean; specie
 type Item = {
   id: string;
   node: LineageNode;
-  kind: "box" | "group" | "plant";
+  // box：顶部方框；group：分类行；plant：植物名片（手机列表）；node：系统树的内部节点；tip：系统树末端的植物
+  kind: "box" | "group" | "plant" | "node" | "tip";
+  tone: string;
+  // node：分支点的位置（名称写在通向它的分支上方）
+  ax?: number;
+  ay?: number;
   x: number;
   y: number;
   w: number;
@@ -49,7 +66,9 @@ type Item = {
 };
 // 连线段：起点、终点，以及它属于哪个节点（用于高亮当前分支）
 type Seg = [number, number, number, number, string];
-type Block = { w: number; h: number; anchor: number; items: Item[]; segs: Seg[] };
+// 色带：某个分支（演化支、纲等）覆盖的范围
+type Band = { id: string; x: number; y: number; w: number; h: number; tone: string };
+type Block = { w: number; h: number; anchor: number; items: Item[]; segs: Seg[]; bands?: Band[] };
 
 function countSpecies(node: LineageNode): number {
   return node.children ? node.children.reduce((n, c) => n + countSpecies(c), 0) : 1;
@@ -80,8 +99,41 @@ function boxWidth(v: Vis) {
   return Math.max(72, textWidth(v.node.name, 14) + textWidth(` ${v.species}`, 12) + 28);
 }
 
+function rowFont(v: { node: LineageNode }) {
+  return ROW_FONT[v.node.level] ?? 13;
+}
+
+// 分类行：箭头 + 中文名 + 学名 + 右侧数量标签
+function badgeWidth(species: number) {
+  return textWidth(String(species), 10.5) + 12;
+}
+
 function groupWidth(v: Vis) {
-  return textWidth(v.node.name, 13) + textWidth(` ${v.species}`, 11) + 26;
+  const latin = v.node.latin ? textWidth(v.node.latin, 10.5) + 7 : 0;
+  // 右侧留出数量标签和“有实拍图”圆点的位置
+  return 24 + textWidth(v.node.name, rowFont(v)) + latin + 20 + badgeWidth(v.species) + 6;
+}
+
+// 每个节点的颜色：较大的分支继续往下分，较小的分支（或只含目的分支）整体用一种颜色
+function toneMap(root: LineageNode) {
+  const map = new Map<string, string>();
+  let next = 0;
+  const paint = (n: LineageNode, id: string, tone: string) => {
+    map.set(id, tone);
+    n.children?.forEach((c) => paint(c, `${id}/${c.name}`, tone));
+  };
+  const visit = (n: LineageNode, id: string) => {
+    const branches = (n.children ?? []).some((c) => BRANCH.has(c.level));
+    if (n === root || (BRANCH.has(n.level) && branches && countSpecies(n) > 24)) {
+      map.set(id, NEUTRAL);
+      n.children?.forEach((c) => visit(c, `${id}/${c.name}`));
+    } else {
+      paint(n, id, TONES[next++ % TONES.length]);
+    }
+  };
+  if (!root.children) map.set(root.name, NEUTRAL);
+  else visit(root, root.name);
+  return map;
 }
 
 function shift(block: Block, dx: number, dy: number): Block {
@@ -97,6 +149,7 @@ function item(v: Vis, kind: Item["kind"], x: number, y: number, w: number, h: nu
     id: v.id,
     node: v.node,
     kind,
+    tone: NEUTRAL,
     x,
     y,
     w,
@@ -118,11 +171,13 @@ function buildColumn(v: Vis): Block {
   function addChildren(parent: Item, children: Vis[], level: number) {
     const spineX = parent.x + 12;
     let lastCenter = parent.y + parent.h;
+    // 同一级的分类行等宽，右侧的数量标签对齐
+    const rowW = Math.max(0, ...children.filter((c) => c.node.level !== "plant").map(groupWidth));
     for (const child of children) {
       const isPlant = child.node.level === "plant";
       const h = isPlant ? PLANT_H : GROUP_H;
       const x = level * INDENT + 12;
-      const row = item(child, isPlant ? "plant" : "group", x, y, isPlant ? PLANT_W : groupWidth(child), h);
+      const row = item(child, isPlant ? "plant" : "group", x, y, isPlant ? PLANT_W : rowW, h);
       items.push(row);
       const cy = y + h / 2;
       segs.push([spineX, cy, x, cy, child.id]);
@@ -181,12 +236,115 @@ function buildTree(v: Vis, columnDepth: number): Block {
   };
 }
 
+// ---------- 系统树（桌面）：根在左，直角分支向右，所有末端在右侧对齐成一列 ----------
+const STEM_MIN = 18; // 末端的最短分支
+const LABEL_PAD = 16; // 节点名称写在分支线上方，分支长度 = 名称宽度 + 留白
+const TIP_H = 30; // 植物行高度
+const LEAF_GAP = 4;
+const BAND_GAP = 10; // 不同色带之间的间距
+const TOP_PAD = 26;
+
+// 分支上方的节点名称：中文名 + 种数
+function nodeLabelWidth(v: Vis) {
+  return textWidth(v.node.name, 12.5) + textWidth(` ${v.species}`, 10.5) + 4;
+}
+
+function tipWidth(v: Vis) {
+  return 36 + textWidth(v.node.name, 13) + (v.node.card?.latin ? textWidth(v.node.card.latin, 10.5) + 8 : 0) + 12;
+}
+
+function buildCladogram(root: Vis, tones: Map<string, string>): Block {
+  const tone = (id: string) => tones.get(id) ?? NEUTRAL;
+  const isLeaf = (v: Vis) => !v.open || !v.children?.length;
+  const px = new Map<string, number>(); // 分支起点（上一级节点的 x）
+  const nx = new Map<string, number>(); // 节点 x
+  const ny = new Map<string, number>(); // 节点 y
+  const bandOf = new Map<string, string>(); // 所在色带（换颜色的那一级节点）
+  const leaves: Vis[] = [];
+  const internals: Vis[] = [];
+
+  const walk = (v: Vis, parentX: number, band: string, parentTone: string) => {
+    const t = tone(v.id);
+    const b = t !== NEUTRAL && t !== parentTone ? v.id : band;
+    bandOf.set(v.id, b);
+    px.set(v.id, parentX);
+    const x = parentX + (isLeaf(v) ? STEM_MIN : Math.max(STEM_MIN, nodeLabelWidth(v) + LABEL_PAD));
+    nx.set(v.id, x);
+    if (isLeaf(v)) {
+      leaves.push(v);
+    } else {
+      internals.push(v);
+      v.children!.forEach((c) => walk(c, x, b, t));
+    }
+  };
+  walk(root, 0, "", NEUTRAL);
+
+  const leafX = Math.max(...leaves.map((l) => nx.get(l.id)!)) + 8;
+  const leafW = Math.max(
+    200,
+    ...leaves.map((l) => (l.node.level === "plant" ? tipWidth(l) : groupWidth(l)))
+  );
+
+  // 末端从上往下排列；换色带时多留一点间距
+  const items: Item[] = [];
+  const segs: Seg[] = [];
+  let y = TOP_PAD;
+  leaves.forEach((l, i) => {
+    const h = l.node.level === "plant" ? TIP_H : GROUP_H;
+    if (i > 0) y += LEAF_GAP + (bandOf.get(l.id) !== bandOf.get(leaves[i - 1].id) ? BAND_GAP : 0);
+    ny.set(l.id, y + h / 2);
+    items.push(item(l, l.node.level === "plant" ? "tip" : "group", leafX, y, leafW, h));
+    // 末端的分支直接连到右侧的名称
+    segs.push([px.get(l.id)!, y + h / 2, leafX, y + h / 2, l.id]);
+    y += h;
+  });
+
+  // 内部节点：位于第一个和最后一个下级之间；名称写在通向它的分支上方
+  [...internals].reverse().forEach((v) => {
+    const kids = v.children!;
+    const first = ny.get(kids[0].id)!;
+    const last = ny.get(kids[kids.length - 1].id)!;
+    const cy = (first + last) / 2;
+    const x = nx.get(v.id)!;
+    ny.set(v.id, cy);
+    segs.push([x, first, x, last, v.id]);
+    segs.push([px.get(v.id)!, cy, x, cy, v.id]);
+    const label = item(v, "node", px.get(v.id)! + 4, cy - 20, nodeLabelWidth(v), 18);
+    label.ax = x;
+    label.ay = cy;
+    items.push(label);
+  });
+
+  // 色带：从该分支的起点到右侧边缘，覆盖它的全部末端
+  const right = leafX + leafW + 8;
+  const bands: Band[] = [];
+  new Set([...bandOf.values()].filter(Boolean)).forEach((id) => {
+    const own = items.filter((it) => it.id === id || it.id.startsWith(`${id}/`));
+    const top = Math.min(...own.map((it) => it.y)) - 4;
+    const bottom = Math.max(...own.filter((it) => it.kind !== "node").map((it) => it.y + it.h)) + 4;
+    const x0 = px.get(id)! + 1;
+    bands.push({ id, x: x0, y: top, w: right - x0, h: bottom - top, tone: tone(id) });
+  });
+
+  return {
+    w: right + 4,
+    h: y + 12,
+    anchor: nx.get(root.id)!,
+    items,
+    segs,
+    bands,
+  };
+}
+
 // 窄屏（手机）时整棵树改为一列缩进列表，避免横向排开后缩得太小
 const NARROW_WIDTH = 600;
 
-function computeLayout(data: LineageNode, expanded: Set<string>, narrow = false) {
-  const columnDepth = narrow ? 0 : (COLUMN_DEPTH[data.level] ?? 0);
-  return buildTree(toVisible(data, data.name, 0, expanded), columnDepth);
+function computeLayout(data: LineageNode, expanded: Set<string>, narrow = false, tones?: Map<string, string>) {
+  const vis = toVisible(data, data.name, 0, expanded);
+  // 桌面：系统树；手机：一列缩进列表
+  const block = narrow ? buildTree(vis, 0) : buildCladogram(vis, tones ?? new Map());
+  if (tones) block.items.forEach((it) => (it.tone = tones.get(it.id) ?? NEUTRAL));
+  return block;
 }
 
 // 节点及其所有下级占据的范围（用于“定位”时适应画面）
@@ -254,6 +412,7 @@ const LEVEL_LABEL: Record<LineageLevel, string> = {
   root: "",
   division: "类群",
   class: "纲",
+  clade: "演化支",
   order: "目",
   family: "科",
   genus: "属",
@@ -290,11 +449,19 @@ function truncate(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
-// 默认展开到列这一层（主页：植物界 › 类群 › 纲，纲下列出各个目）
+// 默认展开类群、纲和演化支，显示到“目”（目先收起）
+function branchExpanded(node: LineageNode, id: string, out = new Set<string>()) {
+  if (!node.children || !BRANCH.has(node.level)) return out;
+  out.add(id);
+  node.children.forEach((c) => branchExpanded(c, `${id}/${c.name}`, out));
+  return out;
+}
+
+// 默认展开到列这一层（主页：植物界 › 类群 › 演化支 / 纲，下面列出各个目）
 function defaultExpanded(data: LineageNode, compact: boolean) {
-  return compact
-    ? allInnerIds(data, data.name)
-    : idsToDepth(data, data.name, (COLUMN_DEPTH[data.level] ?? 0) + 1);
+  if (compact) return allInnerIds(data, data.name);
+  if (BRANCH.has(data.level)) return branchExpanded(data, data.name);
+  return idsToDepth(data, data.name, (COLUMN_DEPTH[data.level] ?? 0) + 1);
 }
 
 // 谱系树：上层从上往下分支，下层为缩进列表；点击节点展开并自动缩放到这一分支
@@ -330,7 +497,8 @@ export default function LineageTree({
   );
 
   const [narrow, setNarrow] = useState(false);
-  const layout = useMemo(() => computeLayout(data, expanded, narrow), [data, expanded, narrow]);
+  const tones = useMemo(() => toneMap(data), [data]);
+  const layout = useMemo(() => computeLayout(data, expanded, narrow, tones), [data, expanded, narrow, tones]);
   // 搜索候选：植物和各级分类
   const suggestions = useMemo(() => {
     const names = new Set<string>();
@@ -386,7 +554,7 @@ export default function LineageTree({
 
   function fitBox(b: Box | null, maxK = FIT_MAX_K) {
     const { width, height } = sizeRef.current;
-    if (b && width > 0) animateTo(fitTransform(b, width, height, maxK, width < NARROW_WIDTH));
+    if (b && width > 0) animateTo(fitTransform(b, width, height, maxK, true));
   }
 
   function wholeBox(block: Block): Box {
@@ -421,7 +589,7 @@ export default function LineageTree({
       setNarrow(isNarrow);
       if (!fitted.current && width > 0) {
         fitted.current = true;
-        apply(fitTransform(wholeBox(computeLayout(data, expanded, isNarrow)), width, height, 1, isNarrow));
+        apply(fitTransform(wholeBox(computeLayout(data, expanded, isNarrow, tones)), width, height, 1, true));
       } else if (refitPending.current && width > 0) {
         refitPending.current = false;
         fitCurrent(latest.current.layout, latest.current.focusId);
@@ -440,15 +608,22 @@ export default function LineageTree({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 滚轮缩放（非 passive 才能阻止页面滚动）
+  // 滚轮上下滚动纵向树（Shift 横向）；Ctrl / ⌘ + 滚轮或触控板双指捏合缩放。非 passive 才能阻止页面滚动
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       cancelAnimationFrame(frame.current);
-      const rect = el.getBoundingClientRect();
-      zoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp(-e.deltaY * 0.0015));
+      if (e.ctrlKey || e.metaKey) {
+        const rect = el.getBoundingClientRect();
+        zoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp(-e.deltaY * 0.004));
+        return;
+      }
+      const t = transformRef.current;
+      const dx = e.shiftKey ? e.deltaY : e.deltaX;
+      const dy = e.shiftKey ? 0 : e.deltaY;
+      apply({ ...t, x: t.x - dx, y: t.y - dy });
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -531,7 +706,7 @@ export default function LineageTree({
       target = parentId(it.id);
     }
     if (target === data.name) target = null;
-    const nextLayout = computeLayout(data, next, narrow);
+    const nextLayout = computeLayout(data, next, narrow, tones);
     setExpanded(next);
     setFocusId(target);
     fitCurrent(nextLayout, target);
@@ -549,7 +724,7 @@ export default function LineageTree({
     setExpanded(next);
     setFocusId(null);
     setHighlight(null);
-    fitBox(wholeBox(computeLayout(data, next, narrow)), 1);
+    fitBox(wholeBox(computeLayout(data, next, narrow, tones)), 1);
   }
 
   function search(e: React.FormEvent) {
@@ -564,7 +739,7 @@ export default function LineageTree({
     const isPlant = !node.children;
     const next = new Set(expanded);
     (isPlant ? path.slice(0, -1) : path).forEach((id) => next.add(id));
-    const nextLayout = computeLayout(data, next, narrow);
+    const nextLayout = computeLayout(data, next, narrow, tones);
     const targetId = path[path.length - 1];
     // 植物：定位到所在的属（同属植物一起显示）；分类：定位到这个分类
     const fitId = isPlant ? (path[path.length - 2] ?? targetId) : targetId;
@@ -603,6 +778,12 @@ export default function LineageTree({
   const activeSegs = focusId ? layout.segs.filter((s) => inBranch(s[4], focusId)) : [];
   const restSegs = focusId ? layout.segs.filter((s) => !inBranch(s[4], focusId)) : layout.segs;
   const segPath = (segs: Seg[]) => segs.map(([x1, y1, x2, y2]) => `M${x1},${y1}L${x2},${y2}`).join("");
+  // 连线按所属分支的颜色分组
+  const segsByTone = new Map<string, Seg[]>();
+  restSegs.forEach((s) => {
+    const tone = tones.get(s[4]) ?? NEUTRAL;
+    segsByTone.set(tone, [...(segsByTone.get(tone) ?? []), s]);
+  });
   const stop = (e: React.PointerEvent) => e.stopPropagation();
 
   return (
@@ -722,12 +903,108 @@ export default function LineageTree({
             </linearGradient>
           </defs>
           <g transform={`translate(${x},${y}) scale(${k})`} className={focusId ? "has-focus" : ""}>
+            {/* 色带：每个大分支一种颜色 */}
+            {(layout.bands ?? []).map((b) => (
+              <rect
+                key={b.id}
+                x={b.x}
+                y={b.y}
+                width={b.w}
+                height={b.h}
+                rx="10"
+                className={focusId !== null && !inBranch(b.id, focusId) ? "lineage-band is-dim" : "lineage-band"}
+                style={{ fill: b.tone }}
+              />
+            ))}
             {/* 直角连线：当前分支加深 */}
-            <path className="lineage-tree-link" d={segPath(restSegs)} />
+            {[...segsByTone].map(([tone, segs]) => (
+              <path key={tone} className="lineage-tree-link" style={{ stroke: tone }} d={segPath(segs)} />
+            ))}
             {activeSegs.length > 0 && <path className="lineage-tree-link is-active" d={segPath(activeSegs)} />}
 
             {layout.items.map((it) => {
               const dim = focusId !== null && !inBranch(it.id, focusId);
+              if (it.kind === "tip") {
+                const latin = it.node.card?.latin ?? "";
+                const cls = ["lineage-tip", highlight === it.id ? "lineage-tip-on" : "", dim ? "is-dim" : ""];
+                return (
+                  <a
+                    key={it.id}
+                    href={it.node.href}
+                    onClick={(e) => openPlant(e, it)}
+                    className={cls.filter(Boolean).join(" ")}
+                    style={{ "--tone": it.tone } as React.CSSProperties}
+                  >
+                    <title>{`${it.node.name} ${latin}`.trim()}</title>
+                    <g transform={`translate(${it.x},${it.y})`}>
+                      <rect width={it.w} height={it.h} rx="7" className="lineage-tip-bg" />
+                      {it.node.photo ? (
+                        <image
+                          href={variantPath(it.node.photo, 320)}
+                          x="5"
+                          y="4"
+                          width={it.h - 8}
+                          height={it.h - 8}
+                          preserveAspectRatio="xMidYMid slice"
+                          clipPath="url(#lineage-thumb-clip)"
+                        />
+                      ) : (
+                        <>
+                          <rect x="5" y="4" width={it.h - 8} height={it.h - 8} rx="5" className="lineage-card-empty" />
+                          <text x={5 + (it.h - 8) / 2} y={it.h / 2} dy="0.36em" textAnchor="middle" className="lineage-tip-initial">
+                            {it.node.name.slice(0, 1)}
+                          </text>
+                        </>
+                      )}
+                      <text x="34" y={it.h / 2} dy="0.35em" className="lineage-tip-name">
+                        {it.node.name}
+                        {latin && (
+                          <tspan className="lineage-tip-latin" dx="8">
+                            {latin}
+                          </tspan>
+                        )}
+                      </text>
+                    </g>
+                  </a>
+                );
+              }
+
+              if (it.kind === "node") {
+                const photoSpecies = it.node.photoCount ?? 0;
+                const cls = [
+                  "lineage-node",
+                  `lv-${it.node.level}`,
+                  focusId === it.id ? "is-focus" : "",
+                  dim ? "is-dim" : "",
+                ];
+                return (
+                  <g
+                    key={it.id}
+                    className={cls.filter(Boolean).join(" ")}
+                    style={{ "--tone": it.tone } as React.CSSProperties}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded
+                    aria-label={`${it.node.name}，${it.species} 种${photoSpecies ? `，${photoSpecies} 种有实拍图` : ""}，点击定位，再点收起`}
+                    onClick={() => onGroupClick(it)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onGroupClick(it);
+                      }
+                    }}
+                  >
+                    <title>{it.node.latin ? `${it.node.name} ${it.node.latin}` : it.node.name}</title>
+                    <rect x={it.x - 4} y={it.y - 2} width={(it.ax ?? it.x) - it.x + 6} height={it.h + 8} className="lineage-node-hit" />
+                    <text x={it.x} y={it.y + 13} className="lineage-node-label">
+                      {it.node.name}
+                      <tspan className="lineage-node-count"> {it.species}</tspan>
+                    </text>
+                    <circle cx={it.ax} cy={it.ay} r="3.2" className="lineage-node-dot" />
+                  </g>
+                );
+              }
+
               if (it.kind === "plant") {
                 const c = it.node.card;
                 // 第三行：生活型 · 叶片要点（没有描述时用标签），都没有时显示实拍张数
@@ -741,6 +1018,7 @@ export default function LineageTree({
                     href={it.node.href}
                     onClick={(e) => openPlant(e, it)}
                     className={cls.filter(Boolean).join(" ")}
+                    style={{ "--tone": it.tone } as React.CSSProperties}
                   >
                     <title>{`${it.node.name} ${c?.latin ?? ""}`.trim()}</title>
                     <g transform={`translate(${it.x},${it.y})`}>
@@ -798,6 +1076,7 @@ export default function LineageTree({
                   key={it.id}
                   transform={`translate(${it.x},${it.y})`}
                   className={className}
+                  style={{ "--tone": it.tone } as React.CSSProperties}
                   role="button"
                   tabIndex={0}
                   aria-expanded={it.open}
@@ -810,20 +1089,34 @@ export default function LineageTree({
                     }
                   }}
                 >
-                  <rect width={it.w} height={it.h} rx={it.kind === "box" ? 9 : 6} />
+                  <rect width={it.w} height={it.h} rx={it.kind === "box" ? 10 : 7} className="lineage-node-bg" />
                   {it.kind === "box" ? (
                     <text x={it.w / 2} y={it.h / 2} dy="0.35em" textAnchor="middle">
                       {it.node.name}
                       <tspan className="lineage-count"> {it.species}</tspan>
                     </text>
                   ) : (
-                    <text x="10" y={it.h / 2} dy="0.35em">
-                      <tspan className="lineage-caret">{it.open ? "▾" : "▸"}</tspan> {it.node.name}
-                      <tspan className="lineage-count"> {it.species}</tspan>
-                    </text>
+                    <>
+                      <rect x="0" y="4" width="3" height={it.h - 8} rx="1.5" className="lineage-row-accent" />
+                      <text x="11" y={it.h / 2} dy="0.35em" style={{ fontSize: rowFont(it) }}>
+                        <tspan className="lineage-caret">{it.open ? "▾" : "▸"}</tspan> {it.node.name}
+                        {it.node.latin && <tspan className="lineage-row-latin" dx="6">{it.node.latin}</tspan>}
+                      </text>
+                      <g transform={`translate(${it.w - badgeWidth(it.species) - 6},${(it.h - 16) / 2})`}>
+                        <rect width={badgeWidth(it.species)} height="16" rx="8" className="lineage-badge" />
+                        <text x={badgeWidth(it.species) / 2} y="8" dy="0.35em" textAnchor="middle" className="lineage-badge-text">
+                          {it.species}
+                        </text>
+                      </g>
+                    </>
                   )}
                   {photoSpecies > 0 && it.depth > 0 && (
-                    <circle cx={it.w - 7} cy="7" r="3" className="lineage-photo-dot" />
+                    <circle
+                      cx={it.kind === "box" ? it.w - 7 : it.w - badgeWidth(it.species) - 13}
+                      cy={it.kind === "box" ? 7 : it.h / 2}
+                      r="3"
+                      className="lineage-photo-dot"
+                    />
                   )}
                 </g>
               );
@@ -834,7 +1127,7 @@ export default function LineageTree({
 
       <p className="lineage-tree-hint">
         <span className="lineage-photo-legend" aria-hidden="true" /> 有实拍图 · 点击分类展开并定位，再点一次收起 ·
-        Esc 返回上一级 · 拖动平移，滚轮或双指缩放
+        Esc 返回上一级 · 滚轮上下滚动，Ctrl + 滚轮或双指缩放
       </p>
     </div>
   );

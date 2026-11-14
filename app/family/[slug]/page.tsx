@@ -8,7 +8,8 @@ import Breadcrumb from "@/app/components/Breadcrumb";
 import LineageTree from "@/app/components/LineageTree";
 import { buildLineageTree, findLineageNode } from "@/lib/lineage";
 import { loadPhotos } from "@/lib/loadPhotos";
-import { taxonomyCrumbs } from "@/lib/structuredData";
+import { taxonSteps, taxonomyCrumbs } from "@/lib/structuredData";
+import TaxonPath from "@/app/components/TaxonPath";
 
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -97,17 +98,7 @@ export default async function FamilyPage({
       {list.length >= 2 && lineageNode && <LineageTree data={lineageNode} compact />}
 
       <h2>{first.family}的分类位置</h2>
-      <div className="lineage-horizontal">
-        <span className="lineage-node">{first.kingdom}</span>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.division}</span>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.className}</span>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.order}</span>
-        <span className="lineage-arrow">›</span>
-        <span className="lineage-node">{first.family}</span>
-      </div>
+      <TaxonPath steps={[...taxonSteps(first, "order"), { name: first.family }]} />
 
       <h2>本科收录植物</h2>
       <p>

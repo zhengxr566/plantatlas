@@ -1,4 +1,4 @@
-import { getPart } from "@/data/parts";
+import { getPart, plantPart } from "@/data/parts";
 
 // 还没有实拍图时显示的占位卡片。用内联 SVG 绘制，不会被当成图片收录。
 const ICONS: Record<string, React.ReactNode> = {
@@ -82,8 +82,7 @@ export default function PartPlaceholder({
         {ICONS[partSlug] ?? ICONS.habit}
       </svg>
       <span className="photo-placeholder-title">
-        {plantName}
-        {part?.noun ?? ""}
+        {part ? plantPart(plantName, part.noun) : plantName}
       </span>
       <span className="photo-placeholder-note">实拍图整理中</span>
     </div>

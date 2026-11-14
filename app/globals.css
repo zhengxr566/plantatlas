@@ -305,6 +305,8 @@ a {
 .level-3 { margin-left: 14px; }
 .level-4 { margin-left: 18px; }
 .level-5 { margin-left: 22px; }
+.sidebar-sub { margin-left: 10px; }
+.lineage-sidebar > .sidebar-section > .sidebar-sub { margin-left: 0; }
 
 /* 列表 */
 .lineage-sidebar ul {
@@ -1132,14 +1134,11 @@ a {
 
 .lineage-tree-canvas {
   position: relative;
-  height: min(74vh, 700px);
+  height: min(82vh, 860px);
   overflow: hidden;
   border: 1px solid #dce8da;
   border-radius: 14px;
-  background:
-    radial-gradient(circle, #e1ebdf 1px, transparent 1px) 0 0 / 22px 22px,
-    linear-gradient(180deg, #fbfdfb, #f5f9f4);
-  box-shadow: inset 0 1px 3px rgba(31, 58, 36, 0.05);
+  background: #fff;
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -1269,22 +1268,24 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-/* connectors */
+/* connectors：颜色由各分支的 --tone 决定（行内 style） */
 .lineage-tree-link {
   fill: none;
   stroke: #a9c6a4;
   stroke-width: 1.5;
+  stroke-opacity: 0.75;
   vector-effect: non-scaling-stroke;
   shape-rendering: crispEdges;
-  transition: stroke 0.2s;
+  transition: stroke-opacity 0.2s;
 }
 
 .has-focus .lineage-tree-link {
-  stroke: #d6e3d3;
+  stroke-opacity: 0.18;
 }
 
 .has-focus .lineage-tree-link.is-active {
-  stroke: #4b7a50;
+  stroke: #2f6b3a;
+  stroke-opacity: 1;
   stroke-width: 2;
 }
 
@@ -1298,6 +1299,7 @@ a {
 .lineage-box,
 .lineage-row,
 .lineage-card {
+  --tone: #5f8a63;
   cursor: pointer;
   animation: lineage-in 0.35s ease-out;
   transition: opacity 0.25s;
@@ -1315,32 +1317,26 @@ a {
   opacity: 1;
 }
 
-/* upper levels: boxes */
-.lineage-box rect {
-  fill: #f4f9f2;
-  stroke: #9dc098;
+/* 顶部方框（植物界、类群） */
+.lineage-box .lineage-node-bg {
+  fill: color-mix(in srgb, var(--tone) 10%, #fff);
+  stroke: color-mix(in srgb, var(--tone) 55%, #fff);
   stroke-width: 1.2;
   filter: url(#lineage-shadow);
   transition: fill 0.15s, stroke 0.15s;
 }
 
-.lineage-box.lv-division rect {
-  fill: #e4f0e1;
-  stroke: #79a875;
+.lineage-box.is-open .lineage-node-bg {
+  stroke: var(--tone);
 }
 
-.lineage-box.is-open rect {
-  fill: #fff;
-  stroke: #4b7a50;
-}
-
-.lineage-box.is-root rect {
+.lineage-box.is-root .lineage-node-bg {
   fill: url(#lineage-root-fill);
   stroke: #2a5f34;
 }
 
 .lineage-box text {
-  fill: #1f3a24;
+  fill: color-mix(in srgb, var(--tone) 55%, #1a2a1d);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1350,22 +1346,52 @@ a {
   fill: #fff;
 }
 
-/* lower levels: indented list rows */
-.lineage-row rect {
+/* 纵向树的分类行：左侧色条 + 中文名 + 学名 + 数量标签 */
+.lineage-row .lineage-node-bg {
   fill: transparent;
-  stroke: none;
-  transition: fill 0.15s;
+  stroke: transparent;
+  stroke-width: 1;
+  transition: fill 0.15s, stroke 0.15s;
+}
+
+.lineage-row.lv-clade .lineage-node-bg,
+.lineage-row.lv-class .lineage-node-bg {
+  fill: color-mix(in srgb, var(--tone) 11%, #fff);
+  stroke: color-mix(in srgb, var(--tone) 28%, #fff);
+}
+
+.lineage-row.lv-order .lineage-node-bg {
+  fill: #fff;
+  stroke: color-mix(in srgb, var(--tone) 22%, #fff);
+}
+
+.lineage-row.is-open.lv-family .lineage-node-bg,
+.lineage-row.is-open.lv-genus .lineage-node-bg {
+  fill: color-mix(in srgb, var(--tone) 6%, transparent);
+}
+
+.lineage-row-accent {
+  fill: var(--tone);
+}
+
+.lineage-row.lv-family .lineage-row-accent,
+.lineage-row.lv-genus .lineage-row-accent {
+  opacity: 0.35;
 }
 
 .lineage-row text {
   fill: #2f4a33;
-  font-size: 13px;
   font-weight: 600;
+}
+
+.lineage-row.lv-clade text,
+.lineage-row.lv-class text {
+  fill: color-mix(in srgb, var(--tone) 65%, #14211a);
+  font-weight: 700;
 }
 
 .lineage-row.lv-order text {
   fill: #1f3a24;
-  font-size: 13.5px;
   font-weight: 700;
 }
 
@@ -1374,13 +1400,16 @@ a {
   font-weight: 500;
 }
 
-.lineage-row.is-open rect {
-  fill: #eef5ec;
+.lineage-row .lineage-row-latin {
+  fill: #8a978c;
+  font-size: 10.5px;
+  font-style: italic;
+  font-weight: 400;
 }
 
 .lineage-caret {
-  fill: #7a9a7d;
-  font-size: 11px;
+  fill: var(--tone);
+  font-size: 10px;
 }
 
 .lineage-count {
@@ -1389,29 +1418,40 @@ a {
   font-weight: 400;
 }
 
+.lineage-badge {
+  fill: color-mix(in srgb, var(--tone) 14%, #fff);
+}
+
+.lineage-row text.lineage-badge-text {
+  fill: color-mix(in srgb, var(--tone) 80%, #14211a);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .lineage-photo-dot {
   fill: #2f9e44;
   stroke: #fff;
   stroke-width: 1.5;
 }
 
-.lineage-box:hover rect,
-.lineage-row:hover rect {
+.lineage-box:hover .lineage-node-bg,
+.lineage-row:hover .lineage-node-bg {
+  stroke: #d97706;
+  stroke-width: 1.6;
+}
+
+.lineage-row:hover .lineage-node-bg {
+  fill: #fdf6ea;
+}
+
+.lineage-box.is-focus .lineage-node-bg,
+.lineage-row.is-focus .lineage-node-bg {
   stroke: #d97706;
   stroke-width: 2;
 }
 
-.lineage-row:hover rect {
-  fill: #fdf3e2;
-}
-
-.lineage-box.is-focus rect,
-.lineage-row.is-focus rect {
-  stroke: #d97706;
-  stroke-width: 2;
-}
-
-.lineage-row.is-focus rect {
+.lineage-row.is-focus .lineage-node-bg {
   fill: #fff7ea;
 }
 
@@ -1420,23 +1460,124 @@ a {
   outline: none;
 }
 
-.lineage-box:focus-visible rect,
-.lineage-row:focus-visible rect {
+.lineage-box:focus-visible .lineage-node-bg,
+.lineage-row:focus-visible .lineage-node-bg {
   stroke: #d97706;
   stroke-width: 2.5;
+}
+
+/* 系统树（桌面）：色带、分支上方的节点名称、右侧对齐的植物 */
+.lineage-band {
+  fill-opacity: 0.1;
+  transition: fill-opacity 0.25s;
+}
+
+.lineage-band.is-dim {
+  fill-opacity: 0.035;
+}
+
+.lineage-node,
+.lineage-tip {
+  --tone: #5f8a63;
+  cursor: pointer;
+  animation: lineage-in 0.35s ease-out;
+  transition: opacity 0.25s;
+}
+
+.lineage-node.is-dim,
+.lineage-tip.is-dim {
+  opacity: 0.38;
+}
+
+.lineage-node.is-dim:hover,
+.lineage-tip.is-dim:hover {
+  opacity: 1;
+}
+
+.lineage-node-hit {
+  fill: transparent;
+}
+
+.lineage-node-label {
+  fill: color-mix(in srgb, var(--tone) 70%, #14211a);
+  font-size: 12.5px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.lineage-node-count {
+  fill: #8a9a8c;
+  font-size: 10.5px;
+  font-weight: 400;
+}
+
+.lineage-node-dot {
+  fill: var(--tone);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.lineage-node:hover .lineage-node-label,
+.lineage-node.is-focus .lineage-node-label,
+.lineage-node:focus-visible .lineage-node-label {
+  fill: #c2410c;
+}
+
+.lineage-node:focus-visible {
+  outline: none;
+}
+
+.lineage-tip-bg {
+  fill: #fff;
+  stroke: color-mix(in srgb, var(--tone) 22%, #fff);
+  stroke-width: 1;
+  transition: stroke 0.15s;
+}
+
+.lineage-tip:hover .lineage-tip-bg {
+  stroke: var(--tone);
+  stroke-width: 1.6;
+}
+
+.lineage-tip-on .lineage-tip-bg {
+  fill: #fffaf0;
+  stroke: #d97706;
+  stroke-width: 2.2;
+}
+
+.lineage-tip-name {
+  fill: #1f2a24;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lineage-tip-latin {
+  fill: #6b7a6e;
+  font-size: 10.5px;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.lineage-tip-initial {
+  fill: #9dbb99;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* plant name cards */
 .lineage-card-bg {
   fill: #fff;
-  stroke: #d5e5d2;
+  stroke: color-mix(in srgb, var(--tone) 25%, #fff);
   stroke-width: 1;
   filter: url(#lineage-shadow);
   transition: stroke 0.15s;
 }
 
 .lineage-card:hover .lineage-card-bg {
-  stroke: #4b7a50;
+  stroke: var(--tone);
   stroke-width: 1.8;
 }
 

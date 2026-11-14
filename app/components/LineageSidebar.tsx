@@ -4,12 +4,35 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSidebar } from "./sidebarContext";
 
-type PlantLink = { slug: string; nameCn: string; nameLatin: string };
+// 谱系结构：类群 › 演化支（可多层）/ 纲 › 目 › 科 › 属 › 种；种没有 children
+export type SidebarNode = { name: string; href?: string; latin?: string; children?: SidebarNode[] };
 
-export type SidebarTree = Record<
-  string,
-  Record<string, Record<string, Record<string, Record<string, PlantLink[]>>>>
->;
+function SidebarBranch({ node, open }: { node: SidebarNode; open: boolean }) {
+  const children = node.children ?? [];
+  const leaves = children.filter((c) => !c.children);
+  return (
+    <details open={open} className="sidebar-sub">
+      <summary>{node.name}</summary>
+      {children
+        .filter((c) => c.children)
+        .map((c) => (
+          <SidebarBranch key={c.name} node={c} open={open} />
+        ))}
+      {leaves.length > 0 && (
+        <ul>
+          {leaves.map((plant) => (
+            <li key={plant.href}>
+              <Link href={plant.href ?? "#"}>
+                {plant.name}
+                <span>{plant.latin}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </details>
+  );
+}
 
 export default function LineageSidebar({
   featuredPlants,
@@ -20,7 +43,7 @@ export default function LineageSidebar({
   featuredPlants: { slug: string; nameCn: string; family: string; genus: string }[];
   featuredCompares: { slug: string; title: string }[];
   identifyLinks: { slug: string; title: string }[];
-  tree: SidebarTree;
+  tree: SidebarNode[];
 }) {
   const [openAll, setOpenAll] = useState(false);
   // 手机上由顶部菜单按钮打开（状态在 AtlasShell 中）
@@ -109,53 +132,8 @@ export default function LineageSidebar({
             </button>
           </div>
 
-          {Object.entries(tree).map(([division, classes]) => (
-            <details key={division} open={openAll}>
-              <summary>{division}</summary>
-
-              {Object.entries(classes).map(([className, orders]) => (
-                <details key={className} open={openAll} className="level-2">
-                  <summary>{className}</summary>
-
-                  {Object.entries(orders).map(([order, families]) => (
-                    <details key={order} open={openAll} className="level-3">
-                      <summary>{order}</summary>
-
-                      {Object.entries(families).map(([family, genera]) => (
-                        <details
-                          key={family}
-                          open={openAll}
-                          className="level-4"
-                        >
-                          <summary>{family}</summary>
-
-                          {Object.entries(genera).map(([genus, species]) => (
-                            <details
-                              key={genus}
-                              open={openAll}
-                              className="level-5"
-                            >
-                              <summary>{genus}</summary>
-
-                              <ul>
-                                {species.map((plant) => (
-                                  <li key={plant.slug}>
-                                    <Link href={`/plant/${plant.slug}`}>
-                                      {plant.nameCn}
-                                      <span>{plant.nameLatin}</span>
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </details>
-                          ))}
-                        </details>
-                      ))}
-                    </details>
-                  ))}
-                </details>
-              ))}
-            </details>
+          {tree.map((division) => (
+            <SidebarBranch key={division.name} node={division} open={openAll} />
           ))}
         </div>
       </aside>

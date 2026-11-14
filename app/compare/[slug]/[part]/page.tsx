@@ -7,7 +7,7 @@ import Breadcrumb from "@/app/components/Breadcrumb";
 import PartCompare, { describePartDifference } from "@/app/components/PartCompare";
 import AdSlot from "@/app/components/AdSlot";
 import { isSuggestionEnabled } from "@/lib/suggestions";
-import { getPart } from "@/data/parts";
+import { getPart, plantPart } from "@/data/parts";
 import {
   findComparePair,
   generateComparePairs,
@@ -60,7 +60,7 @@ export async function generateMetadata({
 
   const { part, pair, photosA, photosB } = data;
   const { plantA, plantB } = pair;
-  const title = `${plantA.nameCn}${part.noun}和${plantB.nameCn}${part.noun}的区别｜实拍图片对比`;
+  const title = `${plantPart(plantA.nameCn, part.noun)}和${plantPart(plantB.nameCn, part.noun)}的区别｜实拍图片对比`;
   const description = `${plantA.nameCn}和${plantB.nameCn}的${part.noun}怎么区分？${describePartDifference(part.slug, plantA, photosA.filter((p) => p.part === part.slug), plantB, photosB.filter((p) => p.part === part.slug)).text}`.slice(0, 160);
   const url = `https://plantatlasworld.com/compare/${pair.slug}/${part.slug}`;
   const firstPhoto = [...photosA, ...photosB].find((p) => p.part === part.slug);
@@ -99,7 +99,7 @@ export default async function PartComparePage({ params }: { params: Params }) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: `${plantA.nameCn}${part.noun}和${plantB.nameCn}${part.noun}的区别`,
+    headline: `${plantPart(plantA.nameCn, part.noun)}和${plantPart(plantB.nameCn, part.noun)}的区别`,
     about: [plantA.nameCn, plantB.nameCn],
     mainEntityOfPage: url,
     ...articleMeta(
@@ -127,9 +127,7 @@ export default async function PartComparePage({ params }: { params: Params }) {
       />
 
       <h1>
-        {plantA.nameCn}
-        {part.noun}和{plantB.nameCn}
-        {part.noun}的区别
+        {plantPart(plantA.nameCn, part.noun)}和{plantPart(plantB.nameCn, part.noun)}的区别
       </h1>
 
       <PartCompare
@@ -177,22 +175,18 @@ export default async function PartComparePage({ params }: { params: Params }) {
         {otherParts.map((p) => (
           <li key={p!.slug}>
             <Link href={`/compare/${pair.slug}/${p!.slug}`} className="link">
-              {plantA.nameCn}
-              {p!.noun}和{plantB.nameCn}
-              {p!.noun}的区别
+              {plantPart(plantA.nameCn, p!.noun)}和{plantPart(plantB.nameCn, p!.noun)}的区别
             </Link>
           </li>
         ))}
         <li>
           <Link href={`/plant/${plantA.slug}/${part.slug}`} className="link">
-            {plantA.nameCn}
-            {part.noun}图片
+            {plantPart(plantA.nameCn, part.noun)}图片
           </Link>
         </li>
         <li>
           <Link href={`/plant/${plantB.slug}/${part.slug}`} className="link">
-            {plantB.nameCn}
-            {part.noun}图片
+            {plantPart(plantB.nameCn, part.noun)}图片
           </Link>
         </li>
       </ul>

@@ -8,9 +8,9 @@ import { loadPhotos } from "@/lib/loadPhotos";
 import { loadPlants } from "@/lib/loadPlants";
 
 export const metadata: Metadata = {
-  title: "植物谱系地图｜常见植物的纲、目、科、属分类关系一览",
+  title: "植物谱系地图｜按 APG IV 演化支浏览目、科、属分类关系",
   description:
-    "用可缩放的谱系树浏览常见植物的分类关系：从裸子植物、被子植物到纲、目、科、属和种，放大即可看到每种植物的简介名片和实拍图。",
+    "用可缩放的谱系树浏览常见植物的分类关系：被子植物按现代分类 APG IV 的演化支（木兰类、真双子叶、蔷薇类、菊类等）展开到目、科、属和种，放大即可看到每种植物的简介名片和实拍图。",
   alternates: { canonical: "https://plantatlasworld.com/lineage" },
 };
 
@@ -71,7 +71,9 @@ export default function LineagePage() {
 
       <h1>植物谱系地图</h1>
       <p>
-        本站收录的 {plants.length} 种植物按“类群 › 纲 › 目 › 科 › 属 › 种”的分类关系排成一棵谱系树。
+        本站收录的 {plants.length} 种植物按“类群 › 演化支 › 目 › 科 › 属 › 种”的分类关系排成一棵谱系树：
+        被子植物采用现代分类系统 APG IV，按 DNA 研究得到的演化支（如真双子叶植物 › 蔷薇类 › 豆类）组织各个目，
+        裸子植物按银杏纲、松柏纲、苏铁纲。
         从上往下，层级越低，亲缘关系越近；同一个属的植物排在一起，往往也是最容易混淆的组合。
         点击分类会展开下一级并自动缩放到合适的画面，每种植物显示为一张简介名片，有实拍图的会直接显示照片。
       </p>

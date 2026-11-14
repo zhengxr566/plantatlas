@@ -98,3 +98,8 @@ export const PART_TAG_GROUPS: Record<string, string[]> = {
   bud: ["芽", "季节", "特殊"],
   habit: ["树形", "季节", "用途", "环境"],
 };
+
+// “植物名 + 部位”：植物名以部位词的第一个字结尾时加“的”，避免“菊花花”“枫树树皮”这样的重复
+export function plantPart(plantName: string, word: string) {
+  return word && plantName.endsWith(word[0]) ? `${plantName}的${word}` : `${plantName}${word}`;
+}

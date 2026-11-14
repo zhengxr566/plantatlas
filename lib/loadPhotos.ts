@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
-import { getPart, plantParts } from "@/data/parts";
+import { getPart, plantPart, plantParts } from "@/data/parts";
 import { DEFAULT_PHOTO_AUTHOR, IMAGE_LICENSE_URL, copyrightNotice } from "@/lib/imageRights";
 
 export const SITE_URL = "https://plantatlasworld.com";
@@ -100,7 +100,7 @@ export function buildPhotoAlt(
   const part = getPart(photo.part);
   const detail = photo.caption || photo.tags.slice(0, 3).join("、");
   return [
-    `${plant.nameCn}${part?.noun ?? ""}`,
+    part ? plantPart(plant.nameCn, part.noun) : plant.nameCn,
     plant.nameLatin ? `（${plant.nameLatin}）` : "",
     detail ? `：${detail}` : "",
   ].join("");

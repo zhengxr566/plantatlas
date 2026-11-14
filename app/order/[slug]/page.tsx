@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
-import { taxonomyCrumbs } from "@/lib/structuredData";
+import { taxonSteps, taxonomyCrumbs } from "@/lib/structuredData";
+import TaxonPath from "@/app/components/TaxonPath";
 import { loadPlants } from "@/lib/loadPlants";
 import { taxonomyRobots } from "@/lib/taxonomy";
 
@@ -64,31 +65,14 @@ export default async function OrderPage({
       <h1>{first.order}植物</h1>
 
       <p>
-        {first.order}属于{first.className}中的一个目。
+        {first.order}属于{first.groups.at(-1)?.name ?? first.className}中的一个目。
         当前本站收录 {list.length} 种{first.order}植物，
         包括{list.slice(0, 8).map((p) => p.nameCn).join("、")}等。
       </p>
 
       <h2>分类位置</h2>
 
-      <div className="lineage-horizontal">
-        <span className="lineage-node">{first.kingdom}</span>
-        <span className="lineage-arrow">›</span>
-
-        <span className="lineage-node">{first.division}</span>
-        <span className="lineage-arrow">›</span>
-
-        <Link
-          href={`/class/${first.classSlug}`}
-          className="lineage-node link"
-        >
-          {first.className}
-        </Link>
-
-        <span className="lineage-arrow">›</span>
-
-        <span className="lineage-node">{first.order}</span>
-      </div>
+      <TaxonPath steps={[...taxonSteps(first, "class"), { name: first.order }]} />
 
       <h2>包含哪些科</h2>
 

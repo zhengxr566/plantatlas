@@ -7,7 +7,7 @@ import { articleMeta, taxonomyCrumbs } from "@/lib/structuredData";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import AdSlot from "@/app/components/AdSlot";
 import { isSuggestionEnabled } from "@/lib/suggestions";
-import { getPart } from "@/data/parts";
+import { getPart, plantPart } from "@/data/parts";
 import { loadPlants, type Plant } from "@/lib/loadPlants";
 import {
   absoluteUrl,
@@ -57,7 +57,7 @@ export async function generateMetadata({
 
   const { part, plant, photos } = data;
   const tags = getPartTags(photos, part.slug);
-  const title = `${plant.nameCn}${part.noun}图片｜${plant.nameCn}${part.nameCn}特征与识别`;
+  const title = `${plantPart(plant.nameCn, part.noun)}图片｜${plantPart(plant.nameCn, part.nameCn)}特征与识别`;
   const description = `${photos.length}张${plant.nameCn}（${plant.nameLatin}）${part.noun}实拍图片。${tags.length > 0 ? `识别特征：${tags.join("、")}。` : ""}`;
   const url = `https://plantatlasworld.com/plant/${plant.slug}/${part.slug}`;
 
@@ -106,7 +106,7 @@ export default async function PlantPartPage({ params }: { params: Params }) {
     "@context": "https://schema.org",
     "@type": "ImageGallery",
     ...articleMeta(photos.map((p) => p.updated)),
-    name: `${plant.nameCn}${part.noun}图片`,
+    name: `${plantPart(plant.nameCn, part.noun)}图片`,
     url,
     about: { "@type": "Thing", name: plant.nameCn, alternateName: plant.nameLatin },
     image: photos.map((p) => buildImageObjectJsonLd(p, plant, url)),
@@ -124,14 +124,12 @@ export default async function PlantPartPage({ params }: { params: Params }) {
       />
 
       <h1>
-        {plant.nameCn}
-        {part.noun}图片
+        {plantPart(plant.nameCn, part.noun)}图片
       </h1>
       <p className="latin">{plant.nameLatin}</p>
 
       <p>
-        本页收录{photos.length}张{plant.nameCn}
-        {part.noun}的实拍照片。
+        本页收录{photos.length}张{plantPart(plant.nameCn, part.noun)}的实拍照片。
         {description && `图鉴描述：${description}。`}
         {tags.length > 0 &&
           `从照片中可以观察到的识别特征包括${tags.join("、")}。`}
@@ -156,8 +154,7 @@ export default async function PlantPartPage({ params }: { params: Params }) {
       {confusable.length > 0 && (
         <>
           <h2>
-            容易与{plant.nameCn}
-            {part.noun}混淆的植物
+            容易与{plantPart(plant.nameCn, part.noun)}混淆的植物
           </h2>
           <ul>
             {confusable.map(({ pair, other, overlap }) => (
@@ -166,9 +163,7 @@ export default async function PlantPartPage({ params }: { params: Params }) {
                   href={`/compare/${pair.slug}/${part.slug}`}
                   className="link"
                 >
-                  {plant.nameCn}
-                  {part.noun}和{other.nameCn}
-                  {part.noun}的区别
+                  {plantPart(plant.nameCn, part.noun)}和{plantPart(other.nameCn, part.noun)}的区别
                 </Link>
                 {overlap!.sharedTags.length > 0 && (
                   <span className="meta">
@@ -189,8 +184,7 @@ export default async function PlantPartPage({ params }: { params: Params }) {
             {otherParts.map((p) => (
               <li key={p.slug}>
                 <Link href={`/plant/${plant.slug}/${p.slug}`} className="link">
-                  {plant.nameCn}
-                  {p.noun}图片
+                  {plantPart(plant.nameCn, p.noun)}图片
                 </Link>
               </li>
             ))}

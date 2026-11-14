@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
+import { directCladesOf, taxonGroups, type TaxonGroup } from "@/data/clades";
 
 export type Plant = {
   slug: string;
@@ -12,6 +13,8 @@ export type Plant = {
   division: string;
   className: string;
   classSlug?: string;
+  // 类群和目之间的层级：被子植物为 APG IV 演化支，裸子植物为纲（由 data/clades.ts 推算）
+  groups: TaxonGroup[];
   order: string;
   orderSlug?: string;
   family: string;
@@ -49,7 +52,7 @@ export function loadPlants(): Plant[] {
     relax_column_count: true,
   }) as Record<string, string>[];
 
-  return rows.map((row) => {
+  const plants: Plant[] = rows.map((row) => {
     return {
       slug: row.slug,
       nameCn: row.nameCn,
@@ -59,6 +62,7 @@ export function loadPlants(): Plant[] {
       division: row.division,
       className: row.className,
       classSlug: row.classSlug,
+      groups: [],
       order: row.order,
       orderSlug: row.orderSlug,
       family: row.family,
@@ -76,4 +80,10 @@ export function loadPlants(): Plant[] {
       similar: splitList(row.similar),
     };
   });
+
+  const direct = directCladesOf(plants);
+  plants.forEach((plant) => {
+    plant.groups = taxonGroups(plant, direct);
+  });
+  return plants;
 }
