@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import CropDialog, { type CropRect } from "./CropDialog";
 import PhotoForm from "./PhotoForm";
+import RedactDialog from "./RedactDialog";
 import PlantPicker from "./PlantPicker";
 import { api, splitTags, type AdminData, type PhotoMeta, type PhotoRow } from "./types";
 
@@ -35,6 +36,7 @@ export default function LibraryTab({
   const [editing, setEditing] = useState<{ file: string; meta: PhotoMeta } | null>(null);
   const [message, setMessage] = useState("");
   const [cropping, setCropping] = useState(false);
+  const [redacting, setRedacting] = useState(false);
   // 裁剪后图片地址不变，用版本号刷新浏览器缓存
   const [versions, setVersions] = useState<Record<string, number>>({});
   const src = (file: string) => `/photos/${file}${versions[file] ? `?v=${versions[file]}` : ""}`;
@@ -78,6 +80,23 @@ export default function LibraryTab({
       });
       setVersions((v) => ({ ...v, [row.file]: Date.now() }));
       setMessage(`已裁剪，保存为 ${row.width}×${row.height}`);
+      onChanged();
+    } catch (error) {
+      setMessage((error as Error).message);
+    }
+  }
+
+  async function applyRedact(redact: CropRect[]) {
+    if (!editing) return;
+    setRedacting(false);
+    if (!redact.length) return;
+    try {
+      const { row } = await api<{ row: PhotoRow }>("/api/admin/photos", {
+        method: "PATCH",
+        json: { file: editing.file, redact },
+      });
+      setVersions((v) => ({ ...v, [row.file]: Date.now() }));
+      setMessage(`已打码 ${redact.length} 处（网站图片已覆盖，无法撤销）`);
       onChanged();
     } catch (error) {
       setMessage((error as Error).message);
@@ -164,6 +183,9 @@ export default function LibraryTab({
               <button type="button" className="btn" onClick={() => setCropping(true)}>
                 裁剪
               </button>
+              <button type="button" className="btn" onClick={() => setRedacting(true)} title="人脸、车牌等个人信息打马赛克">
+                打码
+              </button>
               <a
                 className="btn"
                 href={`/plant/${editing.meta.plant}/${editing.meta.part}`}
@@ -190,6 +212,10 @@ export default function LibraryTab({
           onCancel={() => setCropping(false)}
           onApply={(crop) => applyCrop(crop)}
         />
+      )}
+
+      {redacting && editing && (
+        <RedactDialog src={src(editing.file)} onCancel={() => setRedacting(false)} onApply={applyRedact} />
       )}
     </div>
   );

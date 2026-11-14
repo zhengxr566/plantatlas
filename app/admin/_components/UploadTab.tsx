@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import CropDialog, { type CropRect } from "./CropDialog";
+import { makePreview } from "./imagePreview";
+import RedactDialog from "./RedactDialog";
 import PhotoForm from "./PhotoForm";
 import { api, partTagsFor, type AdminData, type PhotoMeta, type PhotoRow } from "./types";
 
@@ -16,6 +18,8 @@ type QueueItem = {
   // 裁剪区域（原图像素）和裁剪后的小预览
   crop?: CropRect | null;
   cropPreview?: string;
+  // 打码区域（人脸、车牌等，原图像素）
+  redact?: CropRect[];
   // HEIC 正在转换成可预览的 JPEG
   converting?: boolean;
 };
@@ -52,6 +56,7 @@ export default function UploadTab({
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [dragging, setDragging] = useState(false);
   const [cropping, setCropping] = useState<QueueItem | null>(null);
+  const [redacting, setRedacting] = useState<QueueItem | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 从“拍摄进度”点击格子跳转过来时，预填植物和部位
@@ -102,6 +107,22 @@ export default function UploadTab({
     setQueue((q) => q.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
+  // 裁剪或打码后重新生成队列里的小预览
+  async function refreshPreview(item: QueueItem, patch: Pick<QueueItem, "crop" | "redact">) {
+    const crop = "crop" in patch ? patch.crop : item.crop;
+    const redact = "redact" in patch ? patch.redact : item.redact;
+    updateItem(item.id, patch);
+    if (!crop && !redact?.length) {
+      updateItem(item.id, { cropPreview: undefined });
+      return;
+    }
+    try {
+      updateItem(item.id, { cropPreview: await makePreview(item.preview, crop, redact) });
+    } catch {
+      // 预览失败不影响上传
+    }
+  }
+
   function removeItem(id: string) {
     setQueue((q) => {
       const item = q.find((i) => i.id === id);
@@ -131,6 +152,7 @@ export default function UploadTab({
       form.append("file", item.file);
       form.append("meta", JSON.stringify(item.meta));
       if (item.crop) form.append("crop", JSON.stringify(item.crop));
+      if (item.redact?.length) form.append("redact", JSON.stringify(item.redact));
       const result = await api<{ row: PhotoRow }>("/api/admin/photos", {
         method: "POST",
         body: form,
@@ -176,7 +198,7 @@ export default function UploadTab({
       >
         <strong>拖入图片，或点击选择</strong>
         <span className="muted">
-          支持 JPG / PNG / WebP / HEIC（iPhone 照片）。上传时自动压缩到长边 1600px，并去除 GPS 等 EXIF 信息。
+          支持 JPG / PNG / WebP / HEIC（iPhone 照片）。上传时自动压缩到长边 1600px，并去除 GPS 等 EXIF 信息。拍到人脸、车牌时请先点「打码」。
           HEIC 会自动转换，每张需要几秒。
         </span>
         <input
@@ -242,6 +264,9 @@ export default function UploadTab({
                     onAddTag={onAddTag}
             onCreatePlant={onCreatePlant}
                   />
+                  {item.redact?.length ? (
+                    <p className="queue-redacted">已标记 {item.redact.length} 处打码，上传时处理</p>
+                  ) : null}
                   {item.error && <p className="error">{item.error}</p>}
                   <div className="queue-item-actions">
                     <button
@@ -260,11 +285,20 @@ export default function UploadTab({
                     >
                       {item.crop ? "重新裁剪" : "裁剪"}
                     </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={!item.preview}
+                      onClick={() => setRedacting(item)}
+                      title="人脸、车牌等个人信息打马赛克"
+                    >
+                      {item.redact?.length ? `打码（${item.redact.length}）` : "打码"}
+                    </button>
                     {item.crop && (
                       <button
                         type="button"
                         className="btn btn-ghost"
-                        onClick={() => updateItem(item.id, { crop: null, cropPreview: undefined })}
+                        onClick={() => refreshPreview(item, { crop: null })}
                       >
                         取消裁剪
                       </button>
@@ -290,9 +324,22 @@ export default function UploadTab({
           src={cropping.preview}
           initial={cropping.crop}
           onCancel={() => setCropping(null)}
-          onApply={(crop, cropPreview) => {
-            updateItem(cropping.id, { crop, cropPreview });
+          onApply={(crop) => {
+            refreshPreview(cropping, { crop });
             setCropping(null);
+          }}
+        />
+      )}
+
+      {redacting && (
+        <RedactDialog
+          src={redacting.preview}
+          initial={redacting.redact}
+          crop={redacting.crop}
+          onCancel={() => setRedacting(null)}
+          onApply={(redact) => {
+            refreshPreview(redacting, { redact });
+            setRedacting(null);
           }}
         />
       )}

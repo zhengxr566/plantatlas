@@ -158,10 +158,66 @@ export type CropRect = { x: number; y: number; width: number; height: number };
 
 type Rights = { author?: string; date?: string };
 
-// 转正 → 裁剪 → 压缩到长边 1600px 的 JPEG（去除相机 EXIF，写入版权信息）
-async function processImage(buffer: Buffer, crop: CropRect | null | undefined, rights: Rights) {
+// 打码区域（人脸、车牌等个人信息），坐标和裁剪一样是转正后的原图像素
+export type RedactRect = CropRect;
+
+function cleanRedact(input: unknown): RedactRect[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((r) => ({
+      x: Math.round(Number(r?.x)),
+      y: Math.round(Number(r?.y)),
+      width: Math.round(Number(r?.width)),
+      height: Math.round(Number(r?.height)),
+    }))
+    .filter((r) => [r.x, r.y, r.width, r.height].every(Number.isFinite) && r.width > 0 && r.height > 0);
+}
+
+// 马赛克：把区域缩小成粗格子再放大（最近邻），再轻微模糊，无法还原。
+// 格子大小按区域和整张图的尺寸决定，压缩到 1600px 后依然足够粗。
+async function pixelate(image: sharp.Sharp, regions: RedactRect[]) {
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
+  const raw = { width: info.width, height: info.height, channels: info.channels };
+  const overlays: sharp.OverlayOptions[] = [];
+  for (const r of regions) {
+    // 稍微向外扩一点，避免边缘露出
+    const padX = Math.round(r.width * 0.06);
+    const padY = Math.round(r.height * 0.06);
+    const left = Math.max(0, Math.min(r.x - padX, info.width - 1));
+    const top = Math.max(0, Math.min(r.y - padY, info.height - 1));
+    const width = Math.max(1, Math.min(r.width + padX * 2, info.width - left));
+    const height = Math.max(1, Math.min(r.height + padY * 2, info.height - top));
+    const block = Math.max(6, Math.round(Math.max(width, height) / 10), Math.round(Math.max(info.width, info.height) / 120));
+    const small = await sharp(data, { raw })
+      .extract({ left, top, width, height })
+      .resize(Math.max(1, Math.ceil(width / block)), Math.max(1, Math.ceil(height / block)), { fit: "fill" })
+      .toBuffer({ resolveWithObject: true });
+    const patch = await sharp(small.data, { raw: { width: small.info.width, height: small.info.height, channels: small.info.channels } })
+      .resize(width, height, { fit: "fill", kernel: "nearest" })
+      .blur(Math.max(0.5, block / 6))
+      .png()
+      .toBuffer();
+    overlays.push({ input: patch, left, top });
+  }
+  // sharp 的 composite 总在 extract/resize 之后执行，所以先输出打码后的像素，再交给后续裁剪
+  // 合成后可能多出 alpha 通道，按实际输出的通道数读回
+  const done = await sharp(data, { raw }).composite(overlays).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  return sharp(done.data, {
+    raw: { width: done.info.width, height: done.info.height, channels: done.info.channels },
+  });
+}
+
+// 转正 → 打码 → 裁剪 → 压缩到长边 1600px 的 JPEG（去除相机 EXIF，写入版权信息）
+async function processImage(
+  buffer: Buffer,
+  crop: CropRect | null | undefined,
+  rights: Rights,
+  redact: RedactRect[] = []
+) {
   const meta = await sharp(buffer).metadata();
   let image = sharp(buffer).rotate();
+  // 先在整张图上打码，再裁剪（两者都用转正后的原图坐标）
+  if (redact.length) image = await pixelate(image, redact);
 
   if (crop) {
     // EXIF 方向 5–8 表示需要旋转 90°，转正后宽高互换
@@ -266,7 +322,7 @@ function saveOriginal(
   file: string,
   buffer: Buffer,
   meta: sharp.Metadata,
-  extra: { originalName?: string; exifDate?: string; crop?: CropRect | null }
+  extra: { originalName?: string; exifDate?: string; crop?: CropRect | null; redact?: RedactRect[] }
 ) {
   archiveOriginal(file); // 同名的旧原图先留档，避免覆盖
   const base = originalBase(file);
@@ -285,24 +341,38 @@ function saveOriginal(
     exifDate: extra.exifDate ?? "",
     uploadedAt: new Date().toISOString(),
     crop: extra.crop ?? null,
+    // 原图不公开，保留未打码的版本；这里记录网站图片打码的区域
+    redact: extra.redact ?? [],
   };
   fs.writeFileSync(`${base}.json`, JSON.stringify(record, null, 2));
+}
+
+// 已有图片后来打码：在原图记录里注明（坐标是网站图片的像素）
+function recordRedact(file: string, redact: RedactRect[]) {
+  const json = `${originalBase(file)}.json`;
+  if (!fs.existsSync(json)) return;
+  const record = JSON.parse(fs.readFileSync(json, "utf8"));
+  const later = Array.isArray(record.redactLater) ? record.redactLater : [];
+  later.push({ at: new Date().toISOString(), regions: redact });
+  fs.writeFileSync(json, JSON.stringify({ ...record, redactLater: later }, null, 2));
 }
 
 export async function addPhoto(
   buffer: Buffer,
   input: PhotoInput,
   crop?: CropRect | null,
-  originalName?: string
+  originalName?: string,
+  redactInput?: unknown
 ) {
   validatePlantAndPart(input.plant, input.part);
+  const redact = cleanRedact(redactInput);
 
   const heic = isHeic(buffer);
   const source = heic ? await decodeHeic(buffer) : buffer;
   const exifDate = readExifDate(heic ? buffer : (await sharp(buffer).metadata()).exif);
   const date = (input.date ?? "").trim() || exifDate;
   const rights = { author: "", date };
-  const { data, info, meta } = await processImage(source, crop, rights);
+  const { data, info, meta } = await processImage(source, crop, rights, redact);
 
   const dir = path.join(photosDir, input.plant);
   fs.mkdirSync(dir, { recursive: true });
@@ -314,6 +384,7 @@ export async function addPhoto(
     originalName,
     exifDate,
     crop,
+    redact,
   });
 
   const row: PhotoRow = {
@@ -375,8 +446,10 @@ export function updatePhoto(file: string, input: PhotoInput) {
   return row;
 }
 
-// 重新裁剪已有图片（基于网站上保存的版本，覆盖原文件）
-export async function cropPhoto(file: string, crop: CropRect) {
+// 重新裁剪或打码已有图片（基于网站上保存的版本，覆盖原文件）
+export async function cropPhoto(file: string, crop: CropRect | null, redactInput?: unknown) {
+  const redact = cleanRedact(redactInput);
+  if (!crop && !redact.length) throw new Error("没有要裁剪或打码的区域");
   const rows = readPhotoRows();
   const row = rows.find((r) => r.file === file);
   if (!row) throw new Error(`找不到图片 ${file}`);
@@ -384,8 +457,9 @@ export async function cropPhoto(file: string, crop: CropRect) {
   if (!full.startsWith(photosDir + path.sep)) throw new Error("非法路径");
 
   const rights = { author: row.author, date: row.date };
-  const { data, info } = await processImage(fs.readFileSync(full), crop, rights);
+  const { data, info } = await processImage(fs.readFileSync(full), crop, rights, redact);
   fs.writeFileSync(full, data);
+  if (redact.length) recordRedact(file, redact);
   await writeVariants(full, data, rights);
   Object.assign(row, {
     width: String(info.width),
