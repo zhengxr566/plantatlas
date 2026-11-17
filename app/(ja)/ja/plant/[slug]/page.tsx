@@ -7,7 +7,7 @@ import Breadcrumb from "@/app/components/Breadcrumb";
 import JsonLd from "@/app/components/JsonLd";
 import TaxonPath from "@/app/components/TaxonPath";
 import { loadPlants } from "@/lib/loadPlants";
-import { absoluteUrl, loadPhotos } from "@/lib/loadPhotos";
+import { absoluteUrl, loadPhotos, photoCreator } from "@/lib/loadPhotos";
 import { copyrightNotice, IMAGE_LICENSE_URL } from "@/lib/imageRights";
 import {
   SITE_URL,
@@ -100,6 +100,7 @@ export default async function JaPlantPage({ params }: Props) {
       caption: photoAltJa(p, ja, base.nameLatin),
       width: p.width,
       height: p.height,
+      creator: photoCreator(p.author),
       creditText: p.author,
       copyrightNotice: copyrightNotice({ author: p.author, date: p.date }),
       license: IMAGE_LICENSE_URL,

@@ -106,6 +106,13 @@ export function buildPhotoAlt(
   ].join("");
 }
 
+// 图片结构化数据的 creator（Google 图片元数据要求）：默认作者是网站本身，用 Organization
+export function photoCreator(author: string) {
+  return author === DEFAULT_PHOTO_AUTHOR
+    ? { "@type": "Organization", name: author, url: SITE_URL }
+    : { "@type": "Person", name: author };
+}
+
 export function buildImageObjectJsonLd(
   photo: PlantPhoto,
   plant: { nameCn: string; nameLatin?: string },
@@ -119,7 +126,7 @@ export function buildImageObjectJsonLd(
     caption: buildPhotoAlt(photo, plant),
     width: photo.width,
     height: photo.height,
-    creator: { "@type": "Person", name: photo.author },
+    creator: photoCreator(photo.author),
     creditText: photo.author,
     copyrightNotice: copyrightNotice({ author: photo.author, date: photo.date }),
     license: IMAGE_LICENSE_URL,
