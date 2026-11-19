@@ -6,6 +6,9 @@ export const SITE_URL = "https://plantatlasworld.com";
 
 export const jaPlantPath = (slug: string) => `/ja/plant/${slug}`;
 
+// 日本語版の画像利用ページ（画像の構造化データの license / acquireLicensePage にも使う）
+export const JA_IMAGE_LICENSE_URL = `${SITE_URL}/ja/image-license`;
+
 // 写真の部位
 const PART_JA: Record<string, string> = {
   leaf: "葉",

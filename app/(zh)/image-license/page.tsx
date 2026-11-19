@@ -15,7 +15,14 @@ const description =
 export const metadata: Metadata = {
   title,
   description,
-  alternates: { canonical: IMAGE_LICENSE_URL },
+  alternates: {
+    canonical: IMAGE_LICENSE_URL,
+    languages: {
+      "zh-CN": IMAGE_LICENSE_URL,
+      ja: "https://plantatlasworld.com/ja/image-license",
+      "x-default": IMAGE_LICENSE_URL,
+    },
+  },
 };
 
 export default function ImageLicensePage() {

@@ -159,5 +159,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       ...lastModified([ja.updated, ...photoDates(photosOf(ja.slug))]),
     })),
     { url: `${baseUrl}/ja/about`, priority: 0.4 },
+    { url: `${baseUrl}/ja/image-license`, priority: 0.3 },
+    { url: `${baseUrl}/ja/privacy`, priority: 0.2 },
   ];
 }

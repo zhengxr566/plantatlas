@@ -38,8 +38,8 @@ export default function JaAbout() {
         <li>人物の顔や車のナンバープレートなどの個人情報が写り込んだ場合は、モザイク処理をしてから掲載しています。</li>
         <li>
           写真の無断転載はご遠慮ください。利用条件は
-          <Link href="/image-license" hrefLang="zh-CN" className="link">
-            画像の利用について（中国語）
+          <Link href="/ja/image-license" className="link">
+            画像の利用について
           </Link>
           をご覧ください。
         </li>

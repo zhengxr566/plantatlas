@@ -54,13 +54,9 @@ export default function JaRootLayout({ children }: { children: React.ReactNode }
           <span>·</span>
           <Link href="/ja/about">このサイトについて</Link>
           <span>·</span>
-          <Link href="/image-license" hrefLang="zh-CN">
-            画像の利用について（中国語）
-          </Link>
+          <Link href="/ja/image-license">画像の利用について</Link>
           <span>·</span>
-          <Link href="/privacy" hrefLang="zh-CN">
-            プライバシーポリシー（中国語）
-          </Link>
+          <Link href="/ja/privacy">プライバシーポリシー</Link>
           <span>·</span>
           <Link href="/" hrefLang="zh-CN" lang="zh-CN">
             中文版

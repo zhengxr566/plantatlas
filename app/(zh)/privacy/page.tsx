@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
+import { about } from "@/data/about";
 
 export const metadata: Metadata = {
   title: "隐私政策与图片版权｜Plant Atlas World",
   description: "Plant Atlas World 的隐私政策、Cookie 与广告说明以及图片版权声明。",
-  alternates: { canonical: "https://plantatlasworld.com/privacy" },
+  alternates: {
+    canonical: "https://plantatlasworld.com/privacy",
+    languages: {
+      "zh-CN": "https://plantatlasworld.com/privacy",
+      ja: "https://plantatlasworld.com/ja/privacy",
+      "x-default": "https://plantatlasworld.com/privacy",
+    },
+  },
 };
 
 export default function PrivacyPage() {
@@ -67,6 +75,12 @@ export default function PrivacyPage() {
         。
       </p>
 
+      <h2>照片中的个人信息</h2>
+      <p>
+        本站照片拍摄于公园、街道等公共场所，以植物为主体。若照片中出现可识别的人脸、车牌等个人信息，
+        会在发布前做马赛克处理；照片文件中的 GPS 位置等拍摄信息也会在上传时去除。
+        如果您认为某张照片涉及您的个人信息，请通过下方邮箱联系，我们会尽快处理或删除。
+      </p>
       <h2 id="image-license">图片版权</h2>
       <p>
         除特别注明外，本站植物照片均为 Plant Atlas World 实拍，版权归作者所有。
@@ -77,8 +91,13 @@ export default function PrivacyPage() {
         。
       </p>
 
+      <h2>联系我们</h2>
+      <p>
+        关于本政策、个人信息或图片的问题，请发送邮件至 <strong>{about.contact}</strong>。
+      </p>
       <h2>政策更新</h2>
       <p>本政策可能会随网站功能调整而更新，更新后将在本页面发布。</p>
+      <p className="meta">最后更新：2026 年 11 月 19 日</p>
     </AtlasLayout>
   );
 }

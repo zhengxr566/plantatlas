@@ -8,8 +8,9 @@ import JsonLd from "@/app/components/JsonLd";
 import TaxonPath from "@/app/components/TaxonPath";
 import { loadPlants } from "@/lib/loadPlants";
 import { absoluteUrl, loadPhotos, photoCreator } from "@/lib/loadPhotos";
-import { copyrightNotice, IMAGE_LICENSE_URL } from "@/lib/imageRights";
+import { copyrightNotice } from "@/lib/imageRights";
 import {
+  JA_IMAGE_LICENSE_URL,
   SITE_URL,
   getJaPlant,
   jaPlantAlternates,
@@ -103,8 +104,8 @@ export default async function JaPlantPage({ params }: Props) {
       creator: photoCreator(p.author),
       creditText: p.author,
       copyrightNotice: copyrightNotice({ author: p.author, date: p.date }),
-      license: IMAGE_LICENSE_URL,
-      acquireLicensePage: IMAGE_LICENSE_URL,
+      license: JA_IMAGE_LICENSE_URL,
+      acquireLicensePage: JA_IMAGE_LICENSE_URL,
     })),
   };
 
