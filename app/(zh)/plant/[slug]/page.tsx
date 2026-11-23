@@ -8,14 +8,14 @@ import { articleMeta, taxonomyCrumbs } from "@/lib/structuredData";
 import TaxonPath from "@/app/components/TaxonPath";
 import Image from "next/image";
 import PhotoFigure from "@/app/components/PhotoFigure";
-import PartPlaceholder from "@/app/components/PartPlaceholder";
-import { getCorePartSlugs, plantPart, plantParts } from "@/data/parts";
+import { plantPart, plantParts } from "@/data/parts";
 import AdSlot from "@/app/components/AdSlot";
 import { getJaPlant, jaPlantPath, zhPlantAlternates } from "@/lib/ja";
 import {
   buildImageObjectJsonLd,
   buildPhotoAlt,
   loadPhotos,
+  plantsWithPhotos,
 } from "@/lib/loadPhotos";
 import {
   generateComparePairs,
@@ -281,6 +281,8 @@ export async function generateMetadata({
     description,
     // 有日语版时互相标注 hreflang
     alternates: zhPlantAlternates(plant.slug),
+    // 还没有实拍图的植物页只有模板文字：暂不收录，有图后自动恢复
+    ...(plantsWithPhotos().has(plant.slug) ? {} : { robots: { index: false, follow: true } }),
     openGraph: {
       title,
       description,
@@ -302,12 +304,8 @@ export default async function PlantPage({
   const plant = plants.find((p) => p.slug === slug);
   if (!plant) notFound();
   const photos = loadPhotos().filter((p) => p.plant === plant.slug);
-  // 核心部位始终展示（没有图时显示占位），其他部位有图才展示
-  const coreParts = getCorePartSlugs(plant.division, plant.className);
-  const shownParts = plantParts.filter(
-    (part) =>
-      coreParts.includes(part.slug) || photos.some((p) => p.part === part.slug)
-  );
+  // 只展示有实拍图的部位（不显示“整理中”的空占位）
+  const shownParts = plantParts.filter((part) => photos.some((p) => p.part === part.slug));
   const heroPhoto =
     photos.find((p) => p.part === "habit") ??
     photos.find((p) => p.part === "leaf") ??
@@ -441,35 +439,30 @@ export default async function PlantPage({
         </>
       )}
 
-      <h2 id="plant-photos">{plant.nameCn}各部位图片</h2>
-      <div className="photo-gallery plant-part-gallery">
-        {shownParts.map((part) => {
-          const partPhotos = photos.filter((p) => p.part === part.slug);
-          return (
-            <div key={part.slug}>
-              {partPhotos.length > 0 ? (
-                <>
+      {shownParts.length > 0 && (
+        <>
+          <h2 id="plant-photos">{plant.nameCn}各部位图片</h2>
+          <div className="photo-gallery plant-part-gallery">
+            {shownParts.map((part) => {
+              const partPhotos = photos.filter((p) => p.part === part.slug);
+              return (
+                <div key={part.slug}>
                   <PhotoFigure
                     photo={partPhotos[0]}
                     plant={plant}
                     sizes="(max-width: 768px) 50vw, 33vw"
                     showTags={false}
                   />
-                  <Link
-                    href={`/plant/${plant.slug}/${part.slug}`}
-                    className="link"
-                  >
+                  <Link href={`/plant/${plant.slug}/${part.slug}`} className="link">
                     {plantPart(plant.nameCn, part.noun)}图片（{partPhotos.length}张）›
                   </Link>
-                </>
-              ) : (
-                <PartPlaceholder partSlug={part.slug} plantName={plant.nameCn} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-      {photos.length > 0 && <AdSlot />}
+                </div>
+              );
+            })}
+          </div>
+          <AdSlot />
+        </>
+      )}
 
       {comparePairs.length > 0 && (
         <>

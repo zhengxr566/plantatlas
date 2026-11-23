@@ -68,6 +68,11 @@ export function loadPhotos(): PlantPhoto[] {
     }));
 }
 
+// 有实拍图的植物。没有实拍图的植物页只有模板文字，设为 noindex 且不放进 sitemap
+export function plantsWithPhotos() {
+  return new Set(loadPhotos().map((p) => p.plant));
+}
+
 export function groupPhotosByPlant(photos: PlantPhoto[]) {
   const map = new Map<string, PlantPhoto[]>();
   photos.forEach((photo) => {

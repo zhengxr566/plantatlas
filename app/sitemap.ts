@@ -70,11 +70,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/compare`, priority: 0.95 },
     { url: `${baseUrl}/lineage`, priority: 0.9 },
 
-    ...plants.map((p) => ({
+    // 只提交有实拍图的植物页（其余为 noindex）
+    ...plants.filter((p) => photosByPlant.has(p.slug)).map((p) => ({
       url: `${baseUrl}/plant/${p.slug}`,
       priority: 0.8,
       // 有日语版的植物：标注 hreflang
-      ...(jaSlugs.has(p.slug) ? { alternates: { languages: jaPlantAlternates(p.slug).languages } } : {}),
+      ...(jaSlugs.has(p.slug) ? { alternates: { languages: jaPlantAlternates(p.slug).languages! } } : {}),
       images: photoUrls(p.slug),
       ...lastModified(photoDates(photosOf(p.slug))),
     })),
@@ -155,7 +156,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}${jaPlantPath(ja.slug)}`,
       priority: 0.85,
       images: photoUrls(ja.slug),
-      alternates: { languages: jaPlantAlternates(ja.slug).languages },
+      ...(photosByPlant.has(ja.slug) ? { alternates: { languages: jaPlantAlternates(ja.slug).languages! } } : {}),
       ...lastModified([ja.updated, ...photoDates(photosOf(ja.slug))]),
     })),
     { url: `${baseUrl}/ja/about`, priority: 0.4 },
