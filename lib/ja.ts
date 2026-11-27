@@ -1,6 +1,7 @@
 // 日本語版の共通ヘルパー：URL、写真の代替テキスト、hreflang
 import { getJaPlant, jaPlants, type JaPlant } from "@/data/ja/plants";
-import { plantsWithPhotos, type PlantPhoto } from "@/lib/loadPhotos";
+import type { PlantPhoto } from "@/lib/loadPhotos";
+import { pageLanguages, plantAlternates } from "@/lib/i18n";
 
 export const SITE_URL = "https://plantatlasworld.com";
 
@@ -46,32 +47,15 @@ export function photoAltJa(photo: PlantPhoto, plant: JaPlant, latin: string) {
   return `${plant.name}の${partJa(photo.part, plant)}（${latin}）${where ? `｜${where}で撮影` : ""}`;
 }
 
-// 中文版ページの hreflang：日本語版があり、中文版もインデックス対象（実物写真あり）のときだけ相互にリンクする
-// （noindex のページを hreflang に含めると、Google が相互リンクとして扱えない）
-export function zhPlantIndexable(slug: string) {
-  return plantsWithPhotos().has(slug);
-}
-
+// hreflang は lib/i18n.ts で 3 言語（簡体字・日本語・繁体字）まとめて管理する
 export function zhPlantAlternates(slug: string) {
-  const zh = `${SITE_URL}/plant/${slug}`;
-  if (!getJaPlant(slug) || !zhPlantIndexable(slug)) return { canonical: zh };
-  return {
-    canonical: zh,
-    languages: { "zh-CN": zh, ja: `${SITE_URL}${jaPlantPath(slug)}`, "x-default": zh },
-  };
+  return plantAlternates(slug, "zh-CN");
 }
 
 export function jaPlantAlternates(slug: string) {
-  const ja = `${SITE_URL}${jaPlantPath(slug)}`;
-  const zh = `${SITE_URL}/plant/${slug}`;
-  if (!zhPlantIndexable(slug)) return { canonical: ja };
-  return { canonical: ja, languages: { "zh-CN": zh, ja, "x-default": zh } };
+  return plantAlternates(slug, "ja");
 }
 
-export const HOME_ALTERNATES = {
-  "zh-CN": SITE_URL,
-  ja: `${SITE_URL}/ja`,
-  "x-default": SITE_URL,
-};
+export const HOME_ALTERNATES = pageLanguages({ zh: "", ja: "/ja", tw: "/zh-tw" });
 
 export { jaPlants, getJaPlant };

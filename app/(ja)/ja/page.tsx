@@ -112,7 +112,7 @@ export default function JaHome() {
       ))}
 
       <p className="muted ja-note">
-        日本語版は順次追加しています。現在の掲載数は{jaPlants.length}種です。中国語版では{plants.length}種の植物と系統図を公開しています（
+        日本語版のページは順次追加しています。現在の掲載数は{jaPlants.length}種です。中国語版では{plants.length}種の植物と系統図を公開しています（
         <Link href="/" hrefLang="zh-CN" lang="zh-CN" className="link">
           中文版
         </Link>

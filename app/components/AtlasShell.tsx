@@ -110,6 +110,10 @@ export default function AtlasShell({
         <Link href="/ja" hrefLang="ja" lang="ja">
           日本語
         </Link>
+        <span>·</span>
+        <Link href="/zh-tw" hrefLang="zh-TW" lang="zh-Hant-TW">
+          繁體中文
+        </Link>
       </footer>
     </SidebarContext.Provider>
   );

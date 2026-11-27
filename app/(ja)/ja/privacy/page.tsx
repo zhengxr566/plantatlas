@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageLanguages } from "@/lib/i18n";
 import Link from "next/link";
 import { about } from "@/data/about";
 import { SITE_URL } from "@/lib/ja";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/ja/privacy`,
-    languages: { "zh-CN": `${SITE_URL}/privacy`, ja: `${SITE_URL}/ja/privacy`, "x-default": `${SITE_URL}/privacy` },
+    languages: pageLanguages({ zh: "/privacy", ja: "/ja/privacy", tw: "/zh-tw/privacy" }),
   },
 };
 

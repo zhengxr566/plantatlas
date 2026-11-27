@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageLanguages } from "@/lib/i18n";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import { about } from "@/data/about";
@@ -8,11 +9,7 @@ export const metadata: Metadata = {
   description: "Plant Atlas World 的隐私政策、Cookie 与广告说明以及图片版权声明。",
   alternates: {
     canonical: "https://plantatlasworld.com/privacy",
-    languages: {
-      "zh-CN": "https://plantatlasworld.com/privacy",
-      ja: "https://plantatlasworld.com/ja/privacy",
-      "x-default": "https://plantatlasworld.com/privacy",
-    },
+    languages: pageLanguages({ zh: "/privacy", ja: "/ja/privacy", tw: "/zh-tw/privacy" }),
   },
 };
 

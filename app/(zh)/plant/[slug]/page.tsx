@@ -12,6 +12,7 @@ import { plantPart, plantParts } from "@/data/parts";
 import AdSlot from "@/app/components/AdSlot";
 import { getZhPlant } from "@/data/zh/plants";
 import { getJaPlant, jaPlantPath, zhPlantAlternates } from "@/lib/ja";
+import { hasTwPlant, twPlantPath } from "@/lib/tw";
 import {
   buildImageObjectJsonLd,
   buildPhotoAlt,
@@ -279,6 +280,11 @@ export default async function PlantPage({
         {getJaPlant(plant.slug) && (
           <Link href={jaPlantPath(plant.slug)} hrefLang="ja" lang="ja" className="plant-fact plant-fact-lang">
             日本語
+          </Link>
+        )}
+        {hasTwPlant(plant.slug) && (
+          <Link href={twPlantPath(plant.slug)} hrefLang="zh-TW" lang="zh-Hant-TW" className="plant-fact plant-fact-lang">
+            繁體
           </Link>
         )}
         {photos.length > 0 && (

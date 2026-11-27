@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageLanguages } from "@/lib/i18n";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${SITE_URL}/about`,
-    languages: { "zh-CN": `${SITE_URL}/about`, ja: `${SITE_URL}/ja/about`, "x-default": `${SITE_URL}/about` },
+    languages: pageLanguages({ zh: "/about", ja: "/ja/about", tw: "/zh-tw/about" }),
   },
   // data/about.ts 还有未填写的【…】时不收录
   ...(isAboutReady() ? {} : { robots: { index: false, follow: true } }),

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageLanguages } from "@/lib/i18n";
 import Link from "next/link";
 import AtlasLayout from "@/app/components/AtlasLayout";
 import Breadcrumb from "@/app/components/Breadcrumb";
@@ -17,11 +18,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: IMAGE_LICENSE_URL,
-    languages: {
-      "zh-CN": IMAGE_LICENSE_URL,
-      ja: "https://plantatlasworld.com/ja/image-license",
-      "x-default": IMAGE_LICENSE_URL,
-    },
+    languages: pageLanguages({ zh: "/image-license", ja: "/ja/image-license", tw: "/zh-tw/image-license" }),
   },
 };
 

@@ -2447,3 +2447,20 @@ body.ja {
   height: auto;
   display: block;
 }
+
+/* =========================
+   繁體中文版（app/(tw)）：版面沿用 .ja，字型改為繁體中文
+========================= */
+
+body.tw {
+  font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Heiti TC", sans-serif;
+}
+
+.tw .document-panel {
+  letter-spacing: 0.01em;
+}
+
+.ja-langs {
+  display: flex;
+  gap: 6px;
+}

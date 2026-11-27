@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageLanguages } from "@/lib/i18n";
 import Link from "next/link";
 import { about } from "@/data/about";
 import { SITE_URL } from "@/lib/ja";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/ja/about`,
-    languages: { "zh-CN": `${SITE_URL}/about`, ja: `${SITE_URL}/ja/about`, "x-default": `${SITE_URL}/about` },
+    languages: pageLanguages({ zh: "/about", ja: "/ja/about", tw: "/zh-tw/about" }),
   },
 };
 
@@ -53,7 +54,7 @@ export default function JaAbout() {
 
       <h2>お問い合わせ</h2>
       <p>
-        記述の誤り、写真の利用、そのほかのお問い合わせは、メール（{about.contact}）までお願いします。日本語でお送りいただいて大丈夫です。
+        記述の誤り、写真の利用、そのほかのお問い合わせは、メール（{about.contact}）までお願いします。日本語でお気軽にお送りください。
       </p>
     </>
   );

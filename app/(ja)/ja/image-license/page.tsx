@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { pageLanguages } from "@/lib/i18n";
 import Link from "next/link";
 import JsonLd from "@/app/components/JsonLd";
 import { about } from "@/data/about";
-import { DEFAULT_PHOTO_AUTHOR, IMAGE_LICENSE_URL } from "@/lib/imageRights";
+import { DEFAULT_PHOTO_AUTHOR } from "@/lib/imageRights";
 import { JA_IMAGE_LICENSE_URL, SITE_URL } from "@/lib/ja";
 import { loadPhotos } from "@/lib/loadPhotos";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: {
     canonical: JA_IMAGE_LICENSE_URL,
-    languages: { "zh-CN": IMAGE_LICENSE_URL, ja: JA_IMAGE_LICENSE_URL, "x-default": IMAGE_LICENSE_URL },
+    languages: pageLanguages({ zh: "/image-license", ja: "/ja/image-license", tw: "/zh-tw/image-license" }),
   },
 };
 
@@ -48,7 +49,7 @@ export default function JaImageLicense() {
         各画像ファイルには、作成者、著作権表示、このページの URL を埋め込んでいます（EXIF / IPTC 情報）。
       </p>
 
-      <h2>許可なく使える場合</h2>
+      <h2>申請なしで使える場合</h2>
       <p>次のような非営利の目的であれば、申請なしで利用できます。</p>
       <ul className="plant-tips">
         <li>個人の学習や自然観察の記録</li>
@@ -77,7 +78,7 @@ export default function JaImageLicense() {
 
       <h2>申請方法</h2>
       <p>
-        メール（<strong>{about.contact}</strong>）で、次の内容をお知らせください。日本語で大丈夫です。
+        メール（<strong>{about.contact}</strong>）で、次の内容をお知らせください。日本語でお送りください。
       </p>
       <ol>
         <li>利用したい写真が掲載されているページの URL（複数可）</li>

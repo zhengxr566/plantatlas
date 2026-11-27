@@ -11,7 +11,9 @@ import {
 } from "@/lib/loadPhotos";
 import { isTaxonomyIndexable } from "@/lib/taxonomy";
 import { isAboutReady } from "@/data/about";
-import { HOME_ALTERNATES, jaPlantAlternates, jaPlantPath, jaPlants } from "@/lib/ja";
+import { HOME_ALTERNATES, jaPlantPath, jaPlants } from "@/lib/ja";
+import { pageLanguages, plantLanguages } from "@/lib/i18n";
+import { twPlantPath, twPlantSlugs } from "@/lib/tw";
 
 // lastmod 只使用真实日期（图片或手写对比的 updated 列）；没有真实日期时不写，
 // 避免每次部署都把所有页面标成“刚更新”，导致 Google 忽略整个 sitemap 的 lastmod
@@ -31,7 +33,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // 只提交可收录的对比页（有实拍图对比或手写要点）
   const comparePairs = generateComparePairs().filter((p) => p.indexable);
   const photosByPlant = groupPhotosByPlant(loadPhotos());
-  const jaSlugs = new Set(jaPlants.map((p) => p.slug));
 
   function photosOf(plantSlug: string, parts?: string[]) {
     return (photosByPlant.get(plantSlug) ?? []).filter(
@@ -75,7 +76,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/plant/${p.slug}`,
       priority: 0.8,
       // 有日语版的植物：标注 hreflang
-      ...(jaSlugs.has(p.slug) ? { alternates: { languages: jaPlantAlternates(p.slug).languages! } } : {}),
+      ...(plantLanguages(p.slug) ? { alternates: { languages: plantLanguages(p.slug)! } } : {}),
       images: photoUrls(p.slug),
       ...lastModified(photoDates(photosOf(p.slug))),
     })),
@@ -156,11 +157,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}${jaPlantPath(ja.slug)}`,
       priority: 0.85,
       images: photoUrls(ja.slug),
-      ...(photosByPlant.has(ja.slug) ? { alternates: { languages: jaPlantAlternates(ja.slug).languages! } } : {}),
+      ...(plantLanguages(ja.slug) ? { alternates: { languages: plantLanguages(ja.slug)! } } : {}),
       ...lastModified([ja.updated, ...photoDates(photosOf(ja.slug))]),
     })),
     { url: `${baseUrl}/ja/about`, priority: 0.4 },
     { url: `${baseUrl}/ja/image-license`, priority: 0.3 },
     { url: `${baseUrl}/ja/privacy`, priority: 0.2 },
+
+    // 繁體中文版（台灣）
+    { url: `${baseUrl}/zh-tw`, priority: 0.95, alternates: { languages: HOME_ALTERNATES } },
+    ...twPlantSlugs().map((slug) => ({
+      url: `${baseUrl}${twPlantPath(slug)}`,
+      priority: 0.85,
+      images: photoUrls(slug),
+      ...(plantLanguages(slug) ? { alternates: { languages: plantLanguages(slug)! } } : {}),
+      ...lastModified(photoDates(photosOf(slug))),
+    })),
+    { url: `${baseUrl}/zh-tw/about`, priority: 0.4, alternates: { languages: pageLanguages({ zh: "/about", ja: "/ja/about", tw: "/zh-tw/about" }) } },
+    { url: `${baseUrl}/zh-tw/image-license`, priority: 0.3 },
+    { url: `${baseUrl}/zh-tw/privacy`, priority: 0.2 },
   ];
 }

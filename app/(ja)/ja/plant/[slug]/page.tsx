@@ -7,6 +7,7 @@ import Breadcrumb from "@/app/components/Breadcrumb";
 import JsonLd from "@/app/components/JsonLd";
 import TaxonPath from "@/app/components/TaxonPath";
 import { loadPlants } from "@/lib/loadPlants";
+import { hasTwPlant, twPlantPath } from "@/lib/tw";
 import { absoluteUrl, loadPhotos, photoCreator } from "@/lib/loadPhotos";
 import { copyrightNotice } from "@/lib/imageRights";
 import {
@@ -272,8 +273,16 @@ export default async function JaPlantPage({ params }: Props) {
       <p className="muted ja-updated">
         最終更新：{ja.updated.replace(/-/g, "/")} ·{" "}
         <Link href={`/plant/${slug}`} hrefLang="zh-CN" lang="zh-CN" className="link">
-          中文版
+          简体中文版
         </Link>
+        {hasTwPlant(slug) && (
+          <>
+            {" · "}
+            <Link href={twPlantPath(slug)} hrefLang="zh-TW" lang="zh-Hant-TW" className="link">
+              繁體中文版
+            </Link>
+          </>
+        )}
       </p>
     </>
   );

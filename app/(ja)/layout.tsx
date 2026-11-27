@@ -40,9 +40,14 @@ export default function JaRootLayout({ children }: { children: React.ReactNode }
               このサイトについて
             </Link>
           </nav>
-          <Link href="/" className="ja-lang" hrefLang="zh-CN" lang="zh-CN">
-            中文
-          </Link>
+          <span className="ja-langs">
+            <Link href="/" className="ja-lang" hrefLang="zh-CN" lang="zh-CN">
+              简体
+            </Link>
+            <Link href="/zh-tw" className="ja-lang" hrefLang="zh-TW" lang="zh-Hant-TW">
+              繁體
+            </Link>
+          </span>
         </header>
 
         <main className="page ja-page">
@@ -59,7 +64,11 @@ export default function JaRootLayout({ children }: { children: React.ReactNode }
           <Link href="/ja/privacy">プライバシーポリシー</Link>
           <span>·</span>
           <Link href="/" hrefLang="zh-CN" lang="zh-CN">
-            中文版
+            简体中文
+          </Link>
+          <span>·</span>
+          <Link href="/zh-tw" hrefLang="zh-TW" lang="zh-Hant-TW">
+            繁體中文
           </Link>
         </footer>
       </body>
