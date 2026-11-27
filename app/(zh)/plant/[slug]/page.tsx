@@ -10,6 +10,7 @@ import Image from "next/image";
 import PhotoFigure from "@/app/components/PhotoFigure";
 import { plantPart, plantParts } from "@/data/parts";
 import AdSlot from "@/app/components/AdSlot";
+import { getZhPlant } from "@/data/zh/plants";
 import { getJaPlant, jaPlantPath, zhPlantAlternates } from "@/lib/ja";
 import {
   buildImageObjectJsonLd,
@@ -37,14 +38,6 @@ function toList(value: unknown): string[] {
   return [];
 }
 
-function hasTag(plant: any, tag: string) {
-  return toList(plant.tags).includes(tag);
-}
-
-function sentenceList(items: string[]) {
-  return items.filter(Boolean).join("、");
-}
-
 // “，又名白果树、公孙树，”——让搜索别名的读者确认找对了植物
 function aliasClause(plant: Plant) {
   const aliases = toList(plant.aliases);
@@ -57,114 +50,9 @@ function titleName(plant: Plant) {
   return alias ? `${plant.nameCn}（${alias}）` : plant.nameCn;
 }
 
-function buildPlantIntro(plant: any) {
-  const tags = toList(plant.tags);
-
-  return [
-    `${plant.nameCn}（${plant.nameLatin}）${aliasClause(plant)}是${plant.family}${plant.genus}植物。`,
-    plant.habit ? `从生活型来看，它属于${plant.habit}。` : "",
-    plant.leaf ? `它最容易观察的特征是${plant.leaf}。` : "",
-    plant.environment ? `在生长环境上，${plant.environment}。` : "",
-    tags.length > 0
-      ? `常见识别标签包括${sentenceList(tags.slice(0, 6))}。`
-      : "",
-  ]
-    .filter(Boolean)
-    .join("");
-}
-
-function buildIdentificationText(plant: any) {
-  const clues: string[] = [];
-
-  if (plant.leaf) clues.push(`先看叶片：${plant.leaf}`);
-  if (plant.flower) clues.push(`再看花：${plant.flower}`);
-  if (plant.fruit) clues.push(`结果期可看果实：${plant.fruit}`);
-  if (plant.bark) clues.push(`冬季或不开花时可观察树皮：${plant.bark}`);
-
-  if (hasTag(plant, "针叶树")) {
-    clues.push("如果叶片呈针形或鳞片状，通常可以优先考虑松柏类植物。");
-  }
-
-  if (hasTag(plant, "扇形叶")) {
-    clues.push("如果叶片呈扇形并具有放射状叶脉，识别指向性很强。");
-  }
-
-  if (hasTag(plant, "掌状叶")) {
-    clues.push("掌状叶植物适合从叶片裂片数量、叶缘和叶柄长度进一步区分。");
-  }
-
-  if (hasTag(plant, "秋天变黄") || hasTag(plant, "秋色叶")) {
-    clues.push("秋季叶色变化也是重要线索，尤其适合在公园和行道树中观察。");
-  }
-
-  return clues;
-}
-
-function buildSeasonText(plant: any) {
-  const tags = toList(plant.tags);
-  const parts: string[] = [];
-
-  if (tags.some((tag) => tag.includes("秋"))) {
-    parts.push(
-      `${plant.nameCn}具有明显的秋季观赏价值，秋天观察时可以重点看叶色变化。`
-    );
-  }
-
-  if (tags.includes("常绿乔木") || tags.includes("常绿植物")) {
-    parts.push(`${plant.nameCn}属于常绿类型，冬季仍能保持较明显的绿色景观。`);
-  }
-
-  if (tags.includes("落叶乔木")) {
-    parts.push(
-      `${plant.nameCn}属于落叶类型，春夏季适合观察叶片和花果，秋冬季则适合观察树形与树皮。`
-    );
-  }
-
-  if (plant.flower && !plant.flower.includes("无明显")) {
-    parts.push(`开花期可以通过“${plant.flower}”进行辅助识别。`);
-  }
-
-  if (plant.fruit) {
-    parts.push(`结果期则可以观察“${plant.fruit}”。`);
-  }
-
-  return parts;
-}
-
-function buildUsageText(plant: any) {
-  const usage = toList(plant.usage);
-  const tags = toList(plant.tags);
-  const parts: string[] = [];
-
-  if (usage.length > 0) {
-    parts.push(
-      `${plant.nameCn}常用于${sentenceList(
-        usage
-      )}，因此在城市绿化、庭院或公园中较容易见到。`
-    );
-  }
-
-  if (tags.includes("行道树")) {
-    parts.push("作为行道树时，它通常具有较强的适应性，适合道路两侧种植。");
-  }
-
-  if (tags.includes("庭院树")) {
-    parts.push("作为庭院树时，主要价值在于树形、叶色或花果观赏。");
-  }
-
-  if (tags.includes("湿地植物") || tags.includes("水边植物")) {
-    parts.push("如果在河岸、湖边或湿地环境中看到相似植物，可以优先考虑这一类植物。");
-  }
-
-  if (tags.includes("耐寒")) {
-    parts.push("耐寒性较强，使它在北方或冬季气温较低地区也较常见。");
-  }
-
-  if (tags.includes("耐污染")) {
-    parts.push("耐污染能力较强，是它适合城市环境的重要原因。");
-  }
-
-  return parts;
+// 没有手写内容时的简短介绍：只陈述名称和分类（生长环境在下文单独列出），不再罗列标签
+function buildPlantIntro(plant: Plant) {
+  return `${plant.nameCn}（${plant.nameLatin}）${aliasClause(plant)}是${plant.family}${plant.genus}的${plant.habit || "植物"}。`;
 }
 
 function getPlantSeoTopic(plant: any) {
@@ -273,8 +161,10 @@ export async function generateMetadata({
     };
   }
 
-  const title = buildPlantTitle(plant);
-  const description = buildPlantDescription(plant);
+  // 有手写内容时使用手写的标题和说明
+  const zh = getZhPlant(plant.slug);
+  const title = zh?.title ?? buildPlantTitle(plant);
+  const description = zh?.description ?? buildPlantDescription(plant);
 
   return {
     title,
@@ -303,6 +193,7 @@ export default async function PlantPage({
 
   const plant = plants.find((p) => p.slug === slug);
   if (!plant) notFound();
+  const zh = getZhPlant(plant.slug);
   const photos = loadPhotos().filter((p) => p.plant === plant.slug);
   // 只展示有实拍图的部位（不显示“整理中”的空占位）
   const shownParts = plantParts.filter((part) => photos.some((p) => p.part === part.slug));
@@ -336,17 +227,13 @@ export default async function PlantPage({
     { label: "果实 / 种子", value: plant.fruit },
     { label: "树皮", value: plant.bark },
   ].filter((row): row is { label: string; value: string } => Boolean(row.value));
-  // buildIdentificationText 前几条与上面的字段重复，只保留后面基于标签的提示
-  const identifyTips = buildIdentificationText(plant).slice(keyRows.length);
-  const seasonTexts = buildSeasonText(plant);
-  const usageTexts = buildUsageText(plant);
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     ...articleMeta(photos.map((p) => p.updated)),
-    headline: `${plant.nameCn}（${plant.nameLatin}）`,
-    description: `${plant.nameCn}的植物识别、分类谱系和形态特征介绍。`,
+    headline: zh?.title ?? `${plant.nameCn}（${plant.nameLatin}）`,
+    description: zh?.description ?? `${plant.nameCn}的植物识别、分类谱系和形态特征介绍。`,
     url: `https://plantatlasworld.com/plant/${plant.slug}`,
     about: {
       "@type": "Thing",
@@ -414,28 +301,28 @@ export default async function PlantPage({
         </div>
       )}
 
-      <p className="plant-intro">{buildPlantIntro(plant)}</p>
+      {zh ? (
+        zh.lead.map((text) => (
+          <p key={text} className="plant-intro">
+            {text}
+          </p>
+        ))
+      ) : (
+        <p className="plant-intro">{buildPlantIntro(plant)}</p>
+      )}
 
-      {(keyRows.length > 0 || identifyTips.length > 0) && (
+      {/* 识别要点：有手写内容时用手写的，否则用 plants.csv 中的字段 */}
+      {(zh ? zh.points.length > 0 : keyRows.length > 0) && (
         <>
           <h2>如何识别{plant.nameCn}</h2>
-          {keyRows.length > 0 && (
-            <dl className="plant-keys">
-              {keyRows.map((row) => (
-                <div key={row.label} className="plant-key">
-                  <dt>{row.label}</dt>
-                  <dd>{row.value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {identifyTips.length > 0 && (
-            <ul className="plant-tips">
-              {identifyTips.map((tip) => (
-                <li key={tip}>{tip}</li>
-              ))}
-            </ul>
-          )}
+          <dl className="plant-keys">
+            {(zh ? zh.points.map((p) => ({ label: p.label, value: p.text })) : keyRows).map((row) => (
+              <div key={row.label} className="plant-key">
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
         </>
       )}
 
@@ -464,9 +351,31 @@ export default async function PlantPage({
         </>
       )}
 
+      {zh && zh.similar.length > 0 && (
+        <>
+          <h2>{plant.nameCn}和相似植物的区别</h2>
+          <dl className="plant-keys">
+            {zh.similar.map((s) => (
+              <div key={s.name} className="plant-key">
+                <dt>
+                  {s.slug && plants.some((p) => p.slug === s.slug) ? (
+                    <Link href={`/plant/${s.slug}`} className="link">
+                      {s.name}
+                    </Link>
+                  ) : (
+                    s.name
+                  )}
+                </dt>
+                <dd>{s.text}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
+
       {comparePairs.length > 0 && (
         <>
-          <h2>{plant.nameCn}和哪些植物容易混淆</h2>
+          <h2>{zh ? `${plant.nameCn}的对比页` : `${plant.nameCn}和哪些植物容易混淆`}</h2>
           <ul className="plant-link-chips">
             {comparePairs.map((pair) => {
               const other = pair.plantA.slug === plant.slug ? pair.plantB : pair.plantA;
@@ -518,33 +427,41 @@ export default async function PlantPage({
       <h2>{plant.nameCn}是什么植物</h2>
       <TaxonPath steps={[...taxonomyCrumbs(plant, "genus").slice(1), { name: plant.nameCn }]} />
       <p>
-        {plant.nameCn}是{plant.division}中{plant.family}
-        {plant.genus}的植物
-        {plant.habit ? `，生活型为${plant.habit}` : ""}。
-        在<Link href="/lineage" className="link">谱系地图</Link>
-        中可以看到它和同科、同属植物的关系。
+        分类依据现代分子系统学（被子植物采用 APG IV）。和其他植物的亲缘关系可以在
+        <Link href="/lineage" className="link">谱系地图</Link>
+        中查看。
       </p>
 
-      {seasonTexts.length > 0 && (
+      {zh && (
         <>
-          <h2>季节变化与观察时间</h2>
-          {seasonTexts.map((text, index) => (
-            <p key={index}>{text}</p>
-          ))}
+          <h2>四季看点</h2>
+          <dl className="plant-keys">
+            {zh.seasons.map((row) => (
+              <div key={row.label} className="plant-key">
+                <dt>{row.label}</dt>
+                <dd>{row.text}</dd>
+              </div>
+            ))}
+          </dl>
+          <h2>在哪里能看到</h2>
+          <p>{zh.where}</p>
+          {zh.notes.length > 0 && (
+            <>
+              <h2>小知识</h2>
+              <ul className="plant-tips">
+                {zh.notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            </>
+          )}
         </>
       )}
 
-      {(plant.environment || usageTexts.length > 0 || usage.length > 0) && (
+      {!zh && (plant.environment || usage.length > 0) && (
         <>
-          <h2>生长环境与常见用途</h2>
-          {plant.environment && (
-            <p>
-              {plant.nameCn}的生长环境特点是：{plant.environment}。
-            </p>
-          )}
-          {usageTexts.map((text, index) => (
-            <p key={index}>{text}</p>
-          ))}
+          <h2>生长环境与用途</h2>
+          {plant.environment && <p>{plant.environment}。</p>}
           {usage.length > 0 && (
             <div className="photo-tags plant-usage">
               {usage.map((item) => (
@@ -557,7 +474,8 @@ export default async function PlantPage({
         </>
       )}
 
-      {featureTags.length > 0 && (
+      {/* 有手写内容时不再罗列识别标签（内容已在上文） */}
+      {!zh && featureTags.length > 0 && (
         <>
           <h2>识别标签</h2>
           <div className="photo-tags">

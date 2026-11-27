@@ -180,12 +180,15 @@ export function generateComparePairs(): ComparePair[] {
     if (a && b && a.slug !== b.slug) addPair(a, b, "manual");
   });
 
-  // 3. 图片标签自动发现：同一部位共享标签越多，越容易混淆
+  // 3. 图片标签自动发现：同一部位共享标签越多，越容易混淆。
+  // 只在同一科内自动配对：“革质叶”“秋季开花”这类通用标签会把菊花和柊树这样
+  // 毫不相干的植物凑成一组，生成没有意义的对比页。跨科的对比请在 similar 或 compare.csv 中手动指定。
   const photoPlants = plants.filter((p) => photosByPlant.has(p.slug));
   const candidates: { a: Plant; b: Plant; score: number }[] = [];
 
   photoPlants.forEach((a, i) => {
     photoPlants.slice(i + 1).forEach((b) => {
+      if (a.familySlug !== b.familySlug) return;
       const overlaps = getPartOverlaps(
         photosByPlant.get(a.slug)!,
         photosByPlant.get(b.slug)!
